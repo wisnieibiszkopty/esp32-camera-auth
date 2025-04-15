@@ -8,10 +8,12 @@ namespace backend.Discord;
 public class DiscordController : ControllerBase
 {
     private readonly BotService botService;
+    private readonly IStorageService storageService;
 
-    public DiscordController(BotService service)
+    public DiscordController(BotService service, IStorageService storageService)
     {
         botService = service;
+        this.storageService = storageService;
     }
         
     [HttpPost("send")]
@@ -26,32 +28,21 @@ public class DiscordController : ControllerBase
         return Ok("Message sent.");
     }
 
-    // [HttpPost("upload")]
-    // public async Task<IActionResult> UploadImage([FromForm] IFormFile file, [FromForm] IFormFile file2)
-    // {
-    //     if ((file == null || file.Length == 0) || (file2 == null || file2.Length == 0))
-    //     {
-    //         return BadRequest("File not uploaded.");
-    //     }
-    //     
-    //     Bitmap bitmap1;
-    //     using (var memoryStream1 = new MemoryStream())
-    //     {
-    //         await file.CopyToAsync(memoryStream1);
-    //         bitmap1 = new Bitmap(memoryStream1);
-    //     }
-    //     
-    //     Bitmap bitmap2;
-    //     using (var memoryStream2 = new MemoryStream())
-    //     {
-    //         await file2.CopyToAsync(memoryStream2);
-    //         bitmap2 = new Bitmap(memoryStream2);
-    //     }
-    //
-    //     var same = faceService.CompareFaces(bitmap1, bitmap2);
-    //     
-    //     return Ok();
-    // }
+    [HttpPost("upload")]
+    public async Task<IActionResult> UploadFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        using (var stream = file.OpenReadStream())
+        {
+            await storageService.UploadImageAsync(file.FileName, stream);
+        }
+
+        return Ok("File uploaded successfully.");
+    }
     public class MessageRequest
     {
         public string Message { get; set; } = string.Empty;

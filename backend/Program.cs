@@ -13,8 +13,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<BotService>();
 
 builder.Services.AddScoped<IFaceRecognitionService, FaceRecognitionService>();
+builder.Services.AddScoped<IStorageService, AzureStorageService>();
 
-builder.Services.AddHostedService<MqttService>();
+// builder.Services.AddHostedService<MqttService>();
 
 var app = builder.Build();
 
