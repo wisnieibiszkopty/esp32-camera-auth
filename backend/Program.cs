@@ -1,3 +1,6 @@
+using backend.RabbitMQ;
+using backend.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -6,6 +9,12 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddSingleton<BotService>();
+
+builder.Services.AddScoped<IFaceRecognitionService, FaceRecognitionService>();
+
+builder.Services.AddHostedService<MqttService>();
 
 var app = builder.Build();
 
@@ -17,6 +26,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthorization();
+
+var discordService = app.Services.GetRequiredService<BotService>();
+await discordService.StartAsync();
 
 app.MapControllers();
 
