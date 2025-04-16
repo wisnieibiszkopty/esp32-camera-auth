@@ -1,5 +1,9 @@
+using backend.Data;
 using backend.RabbitMQ;
 using backend.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,8 +16,10 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<BotService>();
 
-builder.Services.AddScoped<IFaceRecognitionService, FaceRecognitionService>();
+builder.Services.AddScoped<IFaceRecognition, FaceRecognition>();
 builder.Services.AddScoped<IStorageService, AzureStorageService>();
+
+builder.Services.AddDatabase(builder.Configuration);
 
 // builder.Services.AddHostedService<MqttService>();
 

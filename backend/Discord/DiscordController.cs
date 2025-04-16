@@ -1,5 +1,9 @@
+using backend.Data;
+using backend.Models;
 using backend.Services;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 
 namespace backend.Discord;
 
@@ -9,11 +13,13 @@ public class DiscordController : ControllerBase
 {
     private readonly BotService botService;
     private readonly IStorageService storageService;
+    private readonly DbContext context;
 
-    public DiscordController(BotService service, IStorageService storageService)
+    public DiscordController(BotService service, IStorageService storageService, DbContext context)
     {
         botService = service;
         this.storageService = storageService;
+        this.context = context;
     }
         
     [HttpPost("send")]
@@ -43,6 +49,29 @@ public class DiscordController : ControllerBase
 
         return Ok("File uploaded successfully.");
     }
+
+    // temporary endpoints for testing database connection
+    [HttpPost("add")]
+    public async Task<IActionResult> AddLog()
+    {
+        await context.Logs.InsertOneAsync(new Log{Message = "test"});
+        return Ok("Added");
+    }
+
+    [HttpGet("get")]
+    public async Task<List<Log>> GetLogs()
+    {
+        var logs = await context.Logs.Find(_ => true).ToListAsync();
+        return logs;
+    }
+
+    [HttpDelete]
+    public async Task<IActionResult> DeleteLogs()
+    {
+        await context.Logs.DeleteManyAsync(_ => true);
+        return Ok();
+    }
+    
     public class MessageRequest
     {
         public string Message { get; set; } = string.Empty;

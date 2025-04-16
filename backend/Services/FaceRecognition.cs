@@ -4,14 +4,14 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace backend.Services;
 
-public class FaceRecognitionService : IFaceRecognitionService
+public class FaceRecognition : IFaceRecognition
 {
-    public FaceRecognitionService()
+    public FaceRecognition()
     {
  
     }
-
-    public List<FaceDetectorResult> FindFaces(Image<Rgb24> image)
+    
+    public List<FaceDetectorResult> DetectFaces(Image<Rgb24> image)
     {
         throw new NotImplementedException();
     }

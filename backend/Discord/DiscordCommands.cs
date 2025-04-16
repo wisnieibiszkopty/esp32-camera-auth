@@ -4,6 +4,11 @@ namespace backend.Discord;
 
 public class DiscordCommands : InteractionModuleBase<SocketInteractionContext>
 {
+    public DiscordCommands()
+    {
+        
+    }
+
     // test command
     // commands should invoke some service
     [SlashCommand("test", "Testing")]
