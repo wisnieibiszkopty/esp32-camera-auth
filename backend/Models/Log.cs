@@ -11,6 +11,7 @@ public class Log
     
     public required string DeviceName { get; set; }
     public DateTime Timestamp { get; set; }
+    [BsonRepresentation(BsonType.String)]
     public SecurityLevel LogType { get; set; }
     public required string PhotoPath { get; set; }
 }

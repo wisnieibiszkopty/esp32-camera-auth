@@ -4,6 +4,8 @@ namespace backend.Data.Repositories;
 
 public interface ISecuritySettingsRepository
 {
-    public Task<SecuritySettings?> GetAsync(string id);
+    
+    public SecuritySettings? Get(string? id = null);
+    public void Add(SecuritySettings settings);
     public Task<bool> UpdateAsync(SecuritySettings settings);
 }

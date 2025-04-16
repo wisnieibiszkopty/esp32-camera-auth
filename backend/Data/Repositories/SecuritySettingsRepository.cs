@@ -12,9 +12,19 @@ public class SecuritySettingsRepository : ISecuritySettingsRepository
         collection = context.SecuritySettings;
     }
 
-    public async Task<SecuritySettings?> GetAsync(string id)
+    public SecuritySettings? Get(string? id = null)
     {
-        return await collection.Find(x => x.Id == id).FirstOrDefaultAsync();
+        if (id != null)
+        {
+            return collection.Find(x => x.Id == id).FirstOrDefault();   
+        }
+        
+        return collection.Find(_ => true).FirstOrDefault();
+    }
+
+    public void Add(SecuritySettings settings)
+    {
+        collection.InsertOne(settings);
     }
 
     public async Task<bool> UpdateAsync(SecuritySettings settings)

@@ -5,6 +5,7 @@ using Discord.WebSocket;
 
 namespace backend.Services;
 
+// TODO add some sort of routing for events
 public class BotService
 {
     private readonly DiscordSocketClient client;
@@ -17,7 +18,7 @@ public class BotService
     
     private IServiceProvider? services;
 
-    public BotService(IConfiguration config)
+    public BotService(IConfiguration config, IServiceProvider services)
     {
         botToken = config["Discord:Token"]!;
         guildId = ulong.Parse(config["Discord:GuildId"]!);
@@ -26,6 +27,7 @@ public class BotService
         
         client = new DiscordSocketClient();
         interactionService = new InteractionService(client.Rest);
+        this.services = services;
     }
 
     public async Task StartAsync()
