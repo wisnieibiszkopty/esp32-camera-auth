@@ -29,11 +29,42 @@ public class SecuritySettingsRepository : ISecuritySettingsRepository
 
     public async Task<bool> UpdateAsync(SecuritySettings settings)
     {
-        var result = await collection.ReplaceOneAsync(
+        var updatedDef = Builders<SecuritySettings>.Update
+            .Set(x => x.SecurityLevel, settings.SecurityLevel)
+            .Set(x => x.MaxViolationLimit, settings.MaxViolationLimit)
+            .Set(x => x.MaxRecognizableFaces, settings.MaxRecognizableFaces)
+            .Set(x => x.TimeBeforeUnlockAfterViolation, settings.TimeBeforeUnlockAfterViolation)
+            .Set(x => x.SendLogsToDiscord, settings.SendLogsToDiscord);
+        
+        var result = await collection.UpdateOneAsync(
             x => x.Id == settings.Id,
-            settings
+            updatedDef
         );
 
         return result.IsAcknowledged && result.ModifiedCount > 0;
     }
+    
+    public void GetComments()
+    {
+        
+    }
+
+    public async Task<bool> AddComment(SecuritySettings settings)
+    {
+        var updatedDef = Builders<SecuritySettings>.Update
+            .Set(x => x.CommentPool, settings.CommentPool);
+        
+        var result = await collection.UpdateOneAsync(
+            x => x.Id == settings.Id,
+            updatedDef
+        );
+
+        return result.IsAcknowledged && result.ModifiedCount > 0;
+    }
+
+    public void DeleteComment()
+    {
+        
+    }
+    
 }

@@ -5,6 +5,8 @@ namespace backend.Services;
 
 public class SecuritySettingsService
 {
+    private static readonly int _commentsLimit = 20;
+    
     private ISecuritySettingsRepository _repository;
     private SecuritySettings _settings;
     
@@ -28,8 +30,7 @@ public class SecuritySettingsService
         {
             MaxRecognizableFaces = 5,
             SecurityLevel = SecurityLevel.Violation,
-            SendLogsToDiscord = true,
-            CommentPoolSize = 5
+            SendLogsToDiscord = true
         };
 
         _repository.Add(settings);
@@ -41,39 +42,27 @@ public class SecuritySettingsService
         return _settings;
     }
 
-    public void UpdateSettings(SecuritySettings settings)
+    // todo update them fr
+    public async Task<bool> UpdateSettings(SecuritySettings settings)
     {
         Console.WriteLine(settings.SecurityLevel);
+        
+        return await _repository.UpdateAsync(settings);
+    }
+
+    public List<string> GetComments()
+    {
+        return _settings.CommentPool;
     }
     
-    public void SetSecurityLevel()
+    // TODO handle limit
+    public async Task AddComment(string comment)
     {
-        
-    }
-
-    public void SetPhotosLimit()
-    {
-        
-    }
-
-    public void AllowSendingLogsToDiscord()
-    {
-        
-    }
-
-    public void SetCommentPoolSize()
-    {
-        
-    }
-
-    public void GetComments()
-    {
-        
-    }
-    
-    public void AddComment()
-    {
-        
+        if (_commentsLimit != _settings.CommentPool.Count)
+        {
+            _settings.CommentPool.Add(comment);
+            await _repository.AddComment(_settings);
+        }
     }
 
     public void RemoveComment()

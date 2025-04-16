@@ -4,26 +4,28 @@ using Discord.Interactions;
 
 namespace backend.Discord.Models;
 
-public class SettingsModalData
+public class SettingsModalData : IModal
 {
-    [InputLabel("Recognizable faces limit (1-10)")]
-    [ModalTextInput("max_faces", placeholder: "5")]
-    public string MaxRecognizableFaces { get; set; }
+    public string Title => "Security Settings"; 
 
-    [InputLabel("Security level (violation | nodetection | success)")]
-    [ModalTextInput("security_level", placeholder: "Violation")]
+    [InputLabel("Security level")]
+    [ModalTextInput("security_level")]
     public string SecurityLevel { get; set; }
 
+    [InputLabel("Recognizable faces limit (1-10)")]
+    [ModalTextInput("max_faces")]
+    public string MaxRecognizableFaces { get; set; }
+
     [InputLabel("Violations limit (0-10)")]
-    [ModalTextInput("violations_limit", placeholder: "3")]
+    [ModalTextInput("violations_limit")]
     public string MaxViolationLimit { get; set; }
 
     [InputLabel("Reset time (hh:mm:ss)")]
-    [ModalTextInput("reset_time", placeholder: "1hour")]
+    [ModalTextInput("reset_time")]
     public string TimeBeforeUnlockAfterViolation { get; set; }
 
-    [InputLabel("Send logs to discord (t | f)")]
-    [ModalTextInput("send_logs_to_discord", placeholder: "t")]
+    [InputLabel("Send logs to discord (True | False)")]
+    [ModalTextInput("send_logs_to_discord")]
     public string SendLogsToDiscord { get; set; }
     
     public SecuritySettings ToSecuritySettings()
@@ -57,24 +59,32 @@ public class SettingsModalData
         }
 
         // handle reset time
-        var regex = new Regex(@"^\d+:(?:[0-5]?\d):(?:[0-5]?\d)$");
+        // I have to make working regex, which is not ai generated
+        var regex = new Regex(@"^(?<h>\d+):(?<m>[0-5][0-9]):(?<s>[0-5][0-9])$");
         if (!regex.IsMatch(TimeBeforeUnlockAfterViolation))
         {
             throw new FormatException("Rest time must me in 'hh:mm:ss' format");
         }
 
         var match = regex.Match(TimeBeforeUnlockAfterViolation);
+
+        if (!match.Success)
+        {
+            throw new FormatException("Invalid time format. hh:mm:ss is required");
+        }
+        
         var timeSpan = new TimeSpan(
             int.Parse(match.Groups["h"].Value),
             int.Parse(match.Groups["m"].Value),
             int.Parse(match.Groups["s"].Value)
         );
         
-        if (!(SendLogsToDiscord.ToLower().Equals("t") || SendLogsToDiscord.ToLower().Equals("f")))
+        if (!(SendLogsToDiscord.ToLower().Equals("true") || SendLogsToDiscord.ToLower().Equals("false")))
         {
-            throw new FormatException("Send Logs To Discord must be 't' or 'f'");
+            throw new FormatException("Send Logs To Discord must be True or False");
         }
-        bool sendLogs = SendLogsToDiscord.ToLower() == "t";
+        bool sendLogs = SendLogsToDiscord.ToLower() == "true";
+        
         
         return new SecuritySettings()
         {

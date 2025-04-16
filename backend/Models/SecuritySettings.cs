@@ -17,6 +17,12 @@ public class SecuritySettings
     public int TimeBeforeUnlockAfterViolation { get; set; }
     
     public bool SendLogsToDiscord { get; set; } = true;
-    public int CommentPoolSize { get; set; } = 5;
     public List<string> CommentPool { get; set; } = new List<string>();
+    
+    
+    public string TimeBeforeUnlockAfterViolationAsString()
+    {
+        var time = TimeSpan.FromSeconds(TimeBeforeUnlockAfterViolation);
+        return time.ToString(@"hh\:mm\:ss");
+    }
 }
