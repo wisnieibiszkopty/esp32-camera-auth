@@ -13,7 +13,7 @@ public class DbContext
         database = client.GetDatabase(settings.Value.Database);
     }
 
-    public IMongoCollection<Settings> Settings => database.GetCollection<Settings>("Settings");
+    public IMongoCollection<SecuritySettings> SecuritySettings => database.GetCollection<SecuritySettings>("SecuritySettings");
     public IMongoCollection<Log> Logs => database.GetCollection<Log>("Logs");
 
 }

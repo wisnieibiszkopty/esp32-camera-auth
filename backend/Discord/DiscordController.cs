@@ -51,26 +51,26 @@ public class DiscordController : ControllerBase
     }
 
     // temporary endpoints for testing database connection
-    [HttpPost("add")]
-    public async Task<IActionResult> AddLog()
-    {
-        await context.Logs.InsertOneAsync(new Log{Message = "test"});
-        return Ok("Added");
-    }
-
-    [HttpGet("get")]
-    public async Task<List<Log>> GetLogs()
-    {
-        var logs = await context.Logs.Find(_ => true).ToListAsync();
-        return logs;
-    }
-
-    [HttpDelete]
-    public async Task<IActionResult> DeleteLogs()
-    {
-        await context.Logs.DeleteManyAsync(_ => true);
-        return Ok();
-    }
+    // [HttpPost("add")]
+    // public async Task<IActionResult> AddLog()
+    // {
+    //     await context.Logs.InsertOneAsync(new Log{Message = "test"});
+    //     return Ok("Added");
+    // }
+    //
+    // [HttpGet("get")]
+    // public async Task<List<Log>> GetLogs()
+    // {
+    //     var logs = await context.Logs.Find(_ => true).ToListAsync();
+    //     return logs;
+    // }
+    //
+    // [HttpDelete]
+    // public async Task<IActionResult> DeleteLogs()
+    // {
+    //     await context.Logs.DeleteManyAsync(_ => true);
+    //     return Ok();
+    // }
     
     public class MessageRequest
     {

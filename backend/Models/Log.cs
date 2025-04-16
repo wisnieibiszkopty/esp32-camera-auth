@@ -9,6 +9,8 @@ public class Log
     [BsonRepresentation(BsonType.ObjectId)]
     public string Id { get; set; }
     
-    [BsonElement("message")]
-    public string Message { get; set; }
+    public required string DeviceName { get; set; }
+    public DateTime Timestamp { get; set; }
+    public SecurityLevel LogType { get; set; }
+    public required string PhotoPath { get; set; }
 }
