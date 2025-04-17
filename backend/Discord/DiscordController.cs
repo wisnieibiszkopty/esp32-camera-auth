@@ -34,43 +34,43 @@ public class DiscordController : ControllerBase
         return Ok("Message sent.");
     }
 
-    [HttpPost("upload")]
-    public async Task<IActionResult> UploadFile(IFormFile file)
-    {
-        if (file == null || file.Length == 0)
-        {
-            return BadRequest("No file uploaded.");
-        }
-
-        using (var stream = file.OpenReadStream())
-        {
-            await storageService.UploadImageAsync(file.FileName, stream);
-        }
-
-        return Ok("File uploaded successfully.");
-    }
+    // [HttpPost("upload")]
+    // public async Task<IActionResult> UploadFile(IFormFile file)
+    // {
+    //     if (file == null || file.Length == 0)
+    //     {
+    //         return BadRequest("No file uploaded.");
+    //     }
+    //
+    //     using (var stream = file.OpenReadStream())
+    //     {
+    //         await storageService.UploadImageAsync(file.FileName, stream);
+    //     }
+    //
+    //     return Ok("File uploaded successfully.");
+    // }
 
     // temporary endpoints for testing database connection
-    [HttpPost("add")]
-    public async Task<IActionResult> AddLog()
-    {
-        await context.Logs.InsertOneAsync(new Log{Message = "test"});
-        return Ok("Added");
-    }
-
-    [HttpGet("get")]
-    public async Task<List<Log>> GetLogs()
-    {
-        var logs = await context.Logs.Find(_ => true).ToListAsync();
-        return logs;
-    }
-
-    [HttpDelete]
-    public async Task<IActionResult> DeleteLogs()
-    {
-        await context.Logs.DeleteManyAsync(_ => true);
-        return Ok();
-    }
+    // [HttpPost("add")]
+    // public async Task<IActionResult> AddLog()
+    // {
+    //     await context.Logs.InsertOneAsync(new Log{Message = "test"});
+    //     return Ok("Added");
+    // }
+    //
+    // [HttpGet("get")]
+    // public async Task<List<Log>> GetLogs()
+    // {
+    //     var logs = await context.Logs.Find(_ => true).ToListAsync();
+    //     return logs;
+    // }
+    //
+    // [HttpDelete]
+    // public async Task<IActionResult> DeleteLogs()
+    // {
+    //     await context.Logs.DeleteManyAsync(_ => true);
+    //     return Ok();
+    // }
     
     public class MessageRequest
     {

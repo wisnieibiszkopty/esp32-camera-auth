@@ -1,9 +1,7 @@
 using backend.Data;
+using backend.Discord;
 using backend.RabbitMQ;
 using backend.Services;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,14 +12,20 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<BotService>();
-
-builder.Services.AddScoped<IFaceRecognition, FaceRecognition>();
+// FaceRecognition probably shouldn't be service
+//builder.Services.AddScoped<IFaceRecognition, FaceRecognition>();
 builder.Services.AddScoped<IStorageService, AzureStorageService>();
 
 builder.Services.AddDatabase(builder.Configuration);
+builder.Services.AddRepositories();
+
+builder.Services.AddScoped<SecuritySettingsService>();
+builder.Services.AddScoped<FaceAuthService>();
 
 // builder.Services.AddHostedService<MqttService>();
+
+builder.Services.AddSingleton<BotService>();
+
 
 var app = builder.Build();
 

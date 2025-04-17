@@ -13,17 +13,19 @@ public class AzureStorageService : IStorageService
         connectionString = config["Azure:StorageConnection"]!;
     }
 
-    public async Task UploadImageAsync(string fileName, Stream fileStream)
+    // saving it in public directory is not safe at all
+    public async Task<string> UploadImageAsync(string directory, string fileName, Stream fileStream)
     {
         var blobServiceClient = new BlobServiceClient(connectionString);
-        var blobContainerClient = blobServiceClient.GetBlobContainerClient(containerName);
+        var blobContainerClient = blobServiceClient.GetBlobContainerClient(directory);
 
         await blobContainerClient.CreateIfNotExistsAsync();
 
         var blobClient = blobContainerClient.GetBlobClient(fileName);
         await blobClient.UploadAsync(fileStream, overwrite: true);
+        return blobClient.Uri.ToString();
     }
-
+    
     public void DeleteImageAsync()
     {
         throw new NotImplementedException();

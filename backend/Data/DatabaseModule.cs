@@ -1,3 +1,4 @@
+using backend.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,14 @@ public static class DatabaseModule
         });
         services.AddScoped<DbContext>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<ISecuritySettingsRepository, SecuritySettingsRepository>();
+        services.AddScoped<ILogRepository, LogRepository>();
+        
         return services;
     }
 }
