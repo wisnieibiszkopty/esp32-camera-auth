@@ -10,6 +10,8 @@ public class SecuritySettings
     public string Id { get; set; }
     
     public int MaxRecognizableFaces { get; set; } = 5;
+    public List<string> FacesUrls { get; set; } = new List<string>();
+    
     [BsonRepresentation(BsonType.String)]
     public SecurityLevel SecurityLevel { get; set; } = SecurityLevel.Violation;
     public int MaxViolationLimit { get; set; } = 3;

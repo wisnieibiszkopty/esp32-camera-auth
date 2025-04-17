@@ -2,7 +2,7 @@ namespace backend.Services;
 
 public interface IStorageService
 {
-    Task UploadImageAsync(string fileName, Stream fileStream);
+    Task<string> UploadImageAsync(string directory, string fileName, Stream fileStream);
     void DeleteImageAsync();
     void SelectImageAsync();
     void SelectImagesAsync();

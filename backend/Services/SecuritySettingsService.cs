@@ -3,6 +3,7 @@ using backend.Models;
 
 namespace backend.Services;
 
+// TODO refactor in future
 public class SecuritySettingsService
 {
     private static readonly int _commentsLimit = 20;
@@ -41,13 +42,14 @@ public class SecuritySettingsService
     {
         return _settings;
     }
-
-    // todo update them fr
+    
     public async Task<bool> UpdateSettings(SecuritySettings settings)
     {
         Console.WriteLine(settings.SecurityLevel);
         
-        return await _repository.UpdateAsync(settings);
+        var result = await _repository.UpdateAsync(settings);
+        _settings = _repository.Get()!;
+        return result;
     }
 
     public List<string> GetComments()
@@ -65,8 +67,20 @@ public class SecuritySettingsService
         }
     }
 
-    public void RemoveComment()
+    // todo don't work
+    public async Task RemoveComment(int index)
     {
+        var comments = _settings.CommentPool;
+        int count = comments.Count;
+
+        if (index > count + 1)
+        {
+            // todo failed
+            return;
+        }
         
+        comments.RemoveAt(index);
+        _settings.CommentPool = comments;
+        await _repository.UpdateAsync(_settings);
     }
 }

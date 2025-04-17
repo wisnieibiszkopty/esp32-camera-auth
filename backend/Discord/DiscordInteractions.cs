@@ -1,34 +1,33 @@
 using System.Text;
 using backend.Discord.Models;
 using backend.Models;
+using backend.Models.events;
 using backend.Services;
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace backend.Discord;
 
 public class DiscordInteractions : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly SecuritySettingsService _settingsService;
+    private readonly ulong faceChannelId;
     
-    public DiscordInteractions(SecuritySettingsService service)
+    private readonly SecuritySettingsService settingsService;
+    private readonly AuthService authService;
+    
+    public DiscordInteractions(IConfiguration config, SecuritySettingsService settingsService, AuthService authService)
     {
-        _settingsService = service;
-    }
-
-    // test command
-    // commands should invoke some service
-    [SlashCommand("test", "Testing")]
-    public async Task Test(string text)
-    {
-        await RespondAsync($"Test: {text}");
+        faceChannelId = ulong.Parse(config["Discord:ChannelId"]!);
+        this.settingsService = settingsService;
+        this.authService = authService;
     }
 
     [SlashCommand("show-settings", "Shows current security settings")]
     public async Task GetCurrentConfig()
     {
-        var settings = _settingsService.GetSettings();
+        var settings = settingsService.GetSettings();
         await RespondAsync($"Max faces: {settings.MaxRecognizableFaces}\n" +
                            $"Current security level: {settings.SecurityLevel}\n" +
                            $"Max violations: {settings.MaxViolationLimit}\n" +
@@ -39,7 +38,7 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
     [SlashCommand("update-settings", "Opens modal with form for updating security settings")]
     public async Task UpdateSettings()
     {
-        var settings = _settingsService.GetSettings();
+        var settings = settingsService.GetSettings();
         Console.WriteLine(settings.Id);
         var modal = new ModalBuilder()
             .WithTitle("Security Settings")
@@ -68,7 +67,7 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
 
             settings.Id = settingsId;
             
-            await _settingsService.UpdateSettings(settings);
+            await settingsService.UpdateSettings(settings);
             await RespondAsync("Done! Your settings are now updated.");   
         }
         catch (FormatException ex)
@@ -83,7 +82,7 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
     [SlashCommand("comments-get", "Shows list of available comments")]
     public async Task GetComments()
     {
-        var comments = _settingsService.GetComments();
+        var comments = settingsService.GetComments();
         var sb = new StringBuilder("List of available comments: ");
         
         foreach (var comment in comments)
@@ -97,12 +96,58 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
     [SlashCommand("comments-add", "Adds new comment, which will be attached to violation photo")]
     public async Task AddComment(string comment)
     {
-        await _settingsService.AddComment(comment);
+        await settingsService.AddComment(comment);
         await RespondAsync($"Comment: '{comment}' was added to list!");
     }
 
-    public async Task RemoveComment()
+    // don't work
+    [SlashCommand("comments-remove", "Remove comment from list")]
+    public async Task RemoveComment(int index)
     {
-        
+        await settingsService.RemoveComment(index);
+        await RespondAsync($"Comment with index: {index}");
     }
+    
+    [SlashCommand("register-face", "Registers new face which can be detected")]
+    public async Task RegisterFace(string personName, Attachment image)
+    {
+        if (image == null || string.IsNullOrWhiteSpace(image.Url))
+        {
+            await RespondAsync("You have to add image", ephemeral: true);
+            return;
+        }
+        
+        Console.WriteLine(image.ContentType);
+        Console.WriteLine(image.Filename);
+        
+        using var httpClient = new HttpClient();
+        using var stream = await httpClient.GetStreamAsync(image.Url);
+        
+        Console.WriteLine(image.Url);
+        
+        string extenstion = Path.GetExtension(image.Filename);
+        var result = await authService.RegisterFace(personName += extenstion, stream);
+        
+        string message;
+        if (result.IsSuccess)
+        {
+            message = result.Data;
+        }
+        else
+        {
+            message = result.ErrorMessage;
+        }
+        
+        Console.WriteLine(message);
+
+        //await DeleteOriginalResponseAsync();
+        await RespondAsync(message);
+    }
+    
+    // private async Task OnFaceRegistered(object? sender, FaceRecognisedEventArgs e)
+    // {
+    //     // I have to add this to face Channel instead of general
+    //     await RespondAsync($"{e.PersonName} was added at path: {e.ImagePath}");
+    // }
+    
 }

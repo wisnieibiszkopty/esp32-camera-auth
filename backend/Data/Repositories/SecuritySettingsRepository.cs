@@ -27,6 +27,7 @@ public class SecuritySettingsRepository : ISecuritySettingsRepository
         collection.InsertOne(settings);
     }
 
+    // I should change this
     public async Task<bool> UpdateAsync(SecuritySettings settings)
     {
         var updatedDef = Builders<SecuritySettings>.Update
