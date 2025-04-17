@@ -20,7 +20,7 @@ builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddRepositories();
 
 builder.Services.AddScoped<SecuritySettingsService>();
-builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<FaceAuthService>();
 
 // builder.Services.AddHostedService<MqttService>();
 

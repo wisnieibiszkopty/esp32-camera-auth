@@ -13,15 +13,21 @@ namespace backend.Discord;
 public class DiscordInteractions : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly ulong faceChannelId;
-    
+
+    private readonly ILogger<DiscordInteractions> logger;
     private readonly SecuritySettingsService settingsService;
-    private readonly AuthService authService;
+    private readonly FaceAuthService faceAuthService;
     
-    public DiscordInteractions(IConfiguration config, SecuritySettingsService settingsService, AuthService authService)
+    public DiscordInteractions(
+        IConfiguration config,
+        ILogger<DiscordInteractions> logger,
+        SecuritySettingsService settingsService,
+        FaceAuthService faceAuthService)
     {
         faceChannelId = ulong.Parse(config["Discord:ChannelId"]!);
+        this.logger = logger;
         this.settingsService = settingsService;
-        this.authService = authService;
+        this.faceAuthService = faceAuthService;
     }
 
     [SlashCommand("show-settings", "Shows current security settings")]
@@ -61,19 +67,13 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
     {
         try
         {
-            var settings = data.ToSecuritySettings();
-            
-            Console.WriteLine($"id: ${settingsId}");
-
-            settings.Id = settingsId;
-            
-            await settingsService.UpdateSettings(settings);
+            var settings = data.ToSecuritySettingsDto();
+            await settingsService.UpdateBaseSettings(settings);
             await RespondAsync("Done! Your settings are now updated.");   
         }
         catch (FormatException ex)
         {
-            Console.WriteLine(ex.Message);
-            Console.WriteLine(ex.StackTrace);
+            logger.LogError(ex.Message);
             await RespondAsync($"Invalid form input: {ex.Message}");
         }
     }
@@ -82,7 +82,7 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
     [SlashCommand("comments-get", "Shows list of available comments")]
     public async Task GetComments()
     {
-        var comments = settingsService.GetComments();
+        var comments = settingsService.GetSettings().CommentPool;
         var sb = new StringBuilder("List of available comments: ");
         
         foreach (var comment in comments)
@@ -108,6 +108,7 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
         await RespondAsync($"Comment with index: {index}");
     }
     
+    // Maybe i shouldn't upload face via discord?
     [SlashCommand("register-face", "Registers new face which can be detected")]
     public async Task RegisterFace(string personName, Attachment image)
     {
@@ -126,28 +127,31 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
         Console.WriteLine(image.Url);
         
         string extenstion = Path.GetExtension(image.Filename);
-        var result = await authService.RegisterFace(personName += extenstion, stream);
+        var result = await faceAuthService.RegisterFace(personName, stream, extenstion);
         
-        string message;
         if (result.IsSuccess)
         {
-            message = result.Data;
+            //await SendMessageToChannel(personName, result.Data);
+            await RespondAsync("Registered new face!");
         }
         else
         {
-            message = result.ErrorMessage;
+            await RespondAsync(result.ErrorMessage);
         }
-        
-        Console.WriteLine(message);
-
-        //await DeleteOriginalResponseAsync();
-        await RespondAsync(message);
     }
     
-    // private async Task OnFaceRegistered(object? sender, FaceRecognisedEventArgs e)
-    // {
-    //     // I have to add this to face Channel instead of general
-    //     await RespondAsync($"{e.PersonName} was added at path: {e.ImagePath}");
-    // }
+    private async Task SendMessageToChannel(string message, string url)
+    {
+        var channel = Context.Guild.GetTextChannel(faceChannelId);
+        if (channel != null)
+        {
+            logger.LogDebug(channel.Id.ToString());
+            await channel.SendMessageAsync(message + "\n" + url);
+        }
+        else
+        {
+            logger.LogError("Cannot access faces channel");
+        }
+    }
     
 }

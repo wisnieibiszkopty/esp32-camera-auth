@@ -26,28 +26,15 @@ public class SecuritySettingsRepository : ISecuritySettingsRepository
     {
         collection.InsertOne(settings);
     }
-
-    // I should change this
+    
     public async Task<bool> UpdateAsync(SecuritySettings settings)
     {
-        var updatedDef = Builders<SecuritySettings>.Update
-            .Set(x => x.SecurityLevel, settings.SecurityLevel)
-            .Set(x => x.MaxViolationLimit, settings.MaxViolationLimit)
-            .Set(x => x.MaxRecognizableFaces, settings.MaxRecognizableFaces)
-            .Set(x => x.TimeBeforeUnlockAfterViolation, settings.TimeBeforeUnlockAfterViolation)
-            .Set(x => x.SendLogsToDiscord, settings.SendLogsToDiscord);
-        
-        var result = await collection.UpdateOneAsync(
+        var result = await collection.ReplaceOneAsync(
             x => x.Id == settings.Id,
-            updatedDef
+            settings
         );
 
         return result.IsAcknowledged && result.ModifiedCount > 0;
-    }
-    
-    public void GetComments()
-    {
-        
     }
 
     public async Task<bool> AddComment(SecuritySettings settings)

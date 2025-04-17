@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using backend.Models;
+using backend.Models.Dto;
 using Discord.Interactions;
 
 namespace backend.Discord.Models;
@@ -28,7 +29,7 @@ public class SettingsModalData : IModal
     [ModalTextInput("send_logs_to_discord")]
     public string SendLogsToDiscord { get; set; }
     
-    public SecuritySettings ToSecuritySettings()
+    public SecuritySettingsBaseDto ToSecuritySettingsDto()
     {
         int maxFaces;
         if (!int.TryParse(MaxRecognizableFaces, out maxFaces))
@@ -86,7 +87,7 @@ public class SettingsModalData : IModal
         bool sendLogs = SendLogsToDiscord.ToLower() == "true";
         
         
-        return new SecuritySettings()
+        return new SecuritySettingsBaseDto()
         {
             MaxRecognizableFaces = maxFaces,
             SecurityLevel = level,
