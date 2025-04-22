@@ -2,6 +2,7 @@ using backend.Data.Repositories;
 using backend.Models;
 using backend.Models.Dto;
 using backend.Models.events;
+using backend.Services.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -13,15 +14,18 @@ public class FaceAuthService
     
     private readonly IStorageService storageService;
     private readonly IFaceRepository faceRepository;
+    private readonly ILoggingService loggingService;
     private readonly SecuritySettingsService settingsService;
     
     public FaceAuthService(
         IStorageService storageService,
         IFaceRepository faceRepository,
+        ILoggingService loggingService,
         SecuritySettingsService settingsService)
     {
         this.storageService = storageService;
         this.faceRepository = faceRepository;
+        this.loggingService = loggingService;
         this.settingsService = settingsService;
     }
     
@@ -62,6 +66,8 @@ public class FaceAuthService
             DetectorResult = result.Value
             // i don't want to store image data in db
         });
+
+        Task.Run(() => loggingService.Log());
         
         return Result<string>.Success("Face registered!");
     }

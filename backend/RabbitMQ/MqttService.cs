@@ -1,5 +1,6 @@
 using System.Text;
 using MQTTnet;
+using MQTTnet.Protocol;
 using Newtonsoft.Json;
 
 namespace backend.RabbitMQ;
@@ -69,5 +70,25 @@ public class MqttService : BackgroundService
         
         await client.DisconnectAsync();
         logger.LogInformation("Disconnected with broker");
+    }
+
+    public async Task SendMessageAsync(string topic, string message)
+    {
+        try
+        {
+            var mqttMessage = new MqttApplicationMessageBuilder()
+                .WithTopic(topicName)               
+                .WithPayload(Encoding.UTF8.GetBytes(message))  
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
+                .WithRetainFlag(false)              
+                .Build();
+            
+            await client.PublishAsync(mqttMessage);
+            logger.LogInformation($"Message sent: {message}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"Error sending message: {ex.Message}");
+        }
     }
 }
