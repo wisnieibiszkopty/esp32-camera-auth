@@ -12,13 +12,16 @@ public class FaceAuthService
     private readonly string facesDirectory = "faces";
     
     private readonly IStorageService storageService;
+    private readonly IFaceRepository faceRepository;
     private readonly SecuritySettingsService settingsService;
     
     public FaceAuthService(
         IStorageService storageService,
+        IFaceRepository faceRepository,
         SecuritySettingsService settingsService)
     {
         this.storageService = storageService;
+        this.faceRepository = faceRepository;
         this.settingsService = settingsService;
     }
     
@@ -26,7 +29,7 @@ public class FaceAuthService
     {
         // check if new face can be registered
         var settings = settingsService.GetSettings();
-        if (settings.Faces.Count == settings.MaxRecognizableFaces)
+        if (await faceRepository.GetCount() == settings.MaxRecognizableFaces)
         {
             return Result<string>.Failure("Achieved limit of registered faces");
         }
@@ -52,10 +55,12 @@ public class FaceAuthService
         );
 
         // todo handle error
-        await settingsService.AddFace(new ImageData
+        await faceRepository.SaveAsync(new FaceData
         {
+            Url = url,
             Person = personName,
-            Url = url
+            DetectorResult = result.Value
+            // i don't want to store image data in db
         });
         
         return Result<string>.Success("Face registered!");
@@ -78,18 +83,24 @@ public class FaceAuthService
             var image = Image.Load<Rgb24>(imageStream);
 
             // load faces from azure
-            var registeredFacesData = settingsService.GetSettings().Faces;
-            var files = await storageService.SelectImagesAsync(facesDirectory);
+            //var registeredFacesData = settingsService.GetSettings().Faces;
+            var registeredFacesData = await faceRepository.GetAll();
+            
+            Console.WriteLine(registeredFacesData.Count);
 
-            var faces = new List<FaceData>();
+            var faces = new List<Face>();
 
-            for (int i = 0; i < files.Count; i++)
+            foreach (var face in registeredFacesData)
             {
-                Console.WriteLine(registeredFacesData[i].Person);
-                faces.Add(new FaceData
+                Console.WriteLine(face.Person);
+
+                var storedFile = await storageService.SelectImageAsync(face.Url);
+                
+                faces.Add(new Face
                 {
-                    Person = registeredFacesData[i].Person,
-                    Face = Image.Load<Rgb24>(files[i].File)
+                    PersonName = face.Person,
+                    DetectionData = face.DetectorResult,
+                    Image = storedFile.AsImage()
                 });
             }
             

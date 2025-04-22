@@ -24,6 +24,7 @@ public static class DatabaseModule
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         services.AddScoped<ISecuritySettingsRepository, SecuritySettingsRepository>();
+        services.AddScoped<IFaceRepository, FaceRepository>();
         services.AddScoped<ILogRepository, LogRepository>();
         
         return services;

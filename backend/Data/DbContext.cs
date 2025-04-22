@@ -15,7 +15,7 @@ public class DbContext
     }
 
     public IMongoCollection<SecuritySettings> SecuritySettings => database.GetCollection<SecuritySettings>("SecuritySettings");
-    public IMongoCollection<Face> Faces => database.GetCollection<Face>("Faces");
+    public IMongoCollection<FaceData> Faces => database.GetCollection<FaceData>("Faces");
     public IMongoCollection<Log> Logs => database.GetCollection<Log>("Logs");
 
 }

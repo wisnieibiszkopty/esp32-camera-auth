@@ -33,9 +33,33 @@ public class AzureStorageService : IStorageService
         throw new NotImplementedException();
     }
 
-    public Task SelectImageAsync(string path)
+    public async Task<FileData> SelectImageAsync(string fullPath)
     {
-        throw new NotImplementedException();
+        Console.WriteLine(fullPath);
+        
+        Uri uri = new Uri(fullPath);
+        string path = uri.AbsolutePath.TrimStart('/');
+        
+        var segments = path.Split('/');
+        if (segments.Length < 2)
+        {
+            throw new ArgumentException("Invalid path format");   
+        }
+
+        string containerName = segments[0];  
+        string blobPath = string.Join("/", segments[1..]); 
+        
+        var blobContainerClient = client.GetBlobContainerClient(containerName);
+        var blobClient = blobContainerClient.GetBlobClient(blobPath);
+
+        using var stream = new MemoryStream();
+        await blobClient.DownloadToAsync(stream);
+
+        return new FileData
+        {
+            File = stream.ToArray(),
+            Name = blobClient.Name
+        };
     }
 
     public async Task<List<FileData>> SelectImagesAsync(string directory)

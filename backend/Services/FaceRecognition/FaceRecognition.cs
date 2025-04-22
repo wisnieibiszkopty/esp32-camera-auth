@@ -40,12 +40,12 @@ public class FaceRecognition : IFaceRecognition
         return Result<FaceDetectorResult>.Success(faces.First());
     }
 
-    public float CompareFaces(FaceData face1, FaceData face2)
+    public float CompareFaces(Face face1, Face face2)
     {
-        recognizer.AlignFaceUsingLandmarks(face1.Face, face1.DetectorResult.Landmarks!);
-        recognizer.AlignFaceUsingLandmarks(face2.Face, face2.DetectorResult.Landmarks!);
-        var embedding1 = recognizer.GenerateEmbedding(face1.Face);
-        var embedding2 = recognizer.GenerateEmbedding(face2.Face);
+        recognizer.AlignFaceUsingLandmarks(face1.Image, face1.DetectionData.Landmarks!);
+        recognizer.AlignFaceUsingLandmarks(face2.Image, face2.DetectionData.Landmarks!);
+        var embedding1 = recognizer.GenerateEmbedding(face1.Image);
+        var embedding2 = recognizer.GenerateEmbedding(face2.Image);
         var dot = embedding1.Dot(embedding2);
         
         Console.WriteLine($"Dot product: {dot}");
@@ -66,7 +66,8 @@ public class FaceRecognition : IFaceRecognition
     }
     
     // returns name of recognized person
-    public Result<string> CompareMultipleFaces(List<FaceData> faces, Image<Rgb24> imageToCompare)
+    // I don't really have FaceData for each face
+    public Result<string> CompareMultipleFaces(List<Face> faces, Image<Rgb24> imageToCompare)
     {
         var result = DetectFaces(imageToCompare);
 
@@ -75,18 +76,20 @@ public class FaceRecognition : IFaceRecognition
             return Result<string>.Failure("There is no faces on uploaded image");
         }
         
-        var faceToCompare = new FaceData
+        var faceToCompare = new Face
         {
-            DetectorResult = result.Value,
-            Face = imageToCompare
+            Image = imageToCompare,
+            DetectionData = result.Value
         };
 
+        Console.WriteLine($"{faceToCompare.DetectionData.Landmarks!.Count}");
+        
         foreach (var face in faces)
         {
             var dot = CompareFaces(face, faceToCompare);
-            if (dot > RecognitionThreshold)
+            if (dot > RecognitionThreshold && face.PersonName != null)
             {
-                return Result<string>.Success(face.Person);
+                return Result<string>.Success(face.PersonName);
             }
         }
 

@@ -86,21 +86,4 @@ public class SecuritySettingsService
         _settings.CommentPool = comments;
         await _repository.UpdateAsync(_settings);
     }
-
-    public async Task AddFace(ImageData face)
-    {
-        if (_settings.MaxRecognizableFaces == _settings.Faces.Count)
-        {
-            // failed
-            return;
-        }
-
-        _settings.Faces.Add(face);
-        await _repository.UpdateAsync(_settings);
-    }
-
-    public async Task RemoveFace()
-    {
-        throw new NotImplementedException();
-    }
 }
