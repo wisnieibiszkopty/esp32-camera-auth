@@ -12,16 +12,13 @@ public class FaceAuthService
     private readonly string facesDirectory = "faces";
     
     private readonly IStorageService storageService;
-    private readonly IFacesRepository facesRepository;
     private readonly SecuritySettingsService settingsService;
     
     public FaceAuthService(
         IStorageService storageService,
-        IFacesRepository facesRepository,
         SecuritySettingsService settingsService)
     {
         this.storageService = storageService;
-        this.facesRepository = facesRepository;
         this.settingsService = settingsService;
     }
     
@@ -47,13 +44,6 @@ public class FaceAuthService
             return Result<string>.Failure(result.Error);
         }
         
-        // may be redundant
-        await facesRepository.Insert(new Face
-        {
-            PersonName = personName,
-            DetectionData = result.Value
-        });
-        
         imageStream.Position = 0;
         string url = await storageService.UploadImageAsync(
             facesDirectory,
@@ -64,7 +54,7 @@ public class FaceAuthService
         // todo handle error
         await settingsService.AddFace(new ImageData
         {
-            Name = personName,
+            Person = personName,
             Url = url
         });
         
@@ -95,10 +85,10 @@ public class FaceAuthService
 
             for (int i = 0; i < files.Count; i++)
             {
-                Console.WriteLine(registeredFacesData[i].Name);
+                Console.WriteLine(registeredFacesData[i].Person);
                 faces.Add(new FaceData
                 {
-                    Person = registeredFacesData[i].Name,
+                    Person = registeredFacesData[i].Person,
                     Face = Image.Load<Rgb24>(files[i].File)
                 });
             }
