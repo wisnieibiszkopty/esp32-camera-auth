@@ -36,8 +36,7 @@ public class DiscordController : ControllerBase
     [HttpPost("face-rec")]
     public async Task<IActionResult> VerifyFace([FromBody] FaceVerificationRequest request)
     {
-        await authService.VerifyFace(request);
-        return Ok();
+        return Ok(await authService.VerifyFace(request));
     }
     
     public class MessageRequest

@@ -21,75 +21,54 @@ public class FaceRecognition : IFaceRecognition
         detector = FaceAiSharpBundleFactory.CreateFaceDetector();
         recognizer = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
     }
+
+    private float[] GenerateEmbedding(Image<Rgb24> image, FaceDetectorResult face)
+    {
+        recognizer.AlignFaceUsingLandmarks(image, face.Landmarks!);
+        return recognizer.GenerateEmbedding(image);
+    }
     
-    public Result<FaceDetectorResult> DetectFaces(Image<Rgb24> image)
+    public Result<float[]> DetectFaces(Image<Rgb24> image)
     {
         var faces = detector.DetectFaces(image).ToList();
         if (faces.Count == 0)
         {
             // failed no face on image
-            return Result<FaceDetectorResult>.Failure("Didn't recognized any face on image");
+            return Result<float[]>.Failure("Didn't recognized any face on image");
         }
         
         if (faces.Count > 1)
         {
             // failed only 1 face can be on image
-            return Result<FaceDetectorResult>.Failure("Cannot add face, because multiple were found");
+            return Result<float[]>.Failure("Cannot add face, because multiple were found");
         }
 
-        return Result<FaceDetectorResult>.Success(faces.First());
+        var embedding = GenerateEmbedding(image, faces.First());
+        return Result<float[]>.Success(embedding);
     }
 
-    public float CompareFaces(Face face1, Face face2)
+    public float CompareFaces(float[] face1, float[] face2)
     {
-        recognizer.AlignFaceUsingLandmarks(face1.Image, face1.DetectionData.Landmarks!);
-        recognizer.AlignFaceUsingLandmarks(face2.Image, face2.DetectionData.Landmarks!);
-        var embedding1 = recognizer.GenerateEmbedding(face1.Image);
-        var embedding2 = recognizer.GenerateEmbedding(face2.Image);
-        var dot = embedding1.Dot(embedding2);
-        
-        Console.WriteLine($"Dot product: {dot}");
-        if (dot >= FirstDetectionThreshold)
-        {
-            Console.WriteLine("Assessment: Both pictures show the same person.");
-        }
-        else if (dot > SecondDetectionThreshold && dot < FirstDetectionThreshold)
-        {
-            Console.WriteLine("Assessment: Hard to tell if the pictures show the same person.");
-        }
-        else if (dot <= SecondDetectionThreshold)
-        {
-            Console.WriteLine("Assessment: These are two different people.");
-        }
-
-        return dot;
+        return face1.Dot(face2);
     }
     
     // returns name of recognized person
-    // I don't really have FaceData for each face
-    public Result<string> CompareMultipleFaces(List<Face> faces, Image<Rgb24> imageToCompare)
+    public Result<string> CompareMultipleFaces(List<FaceData> faces, Image<Rgb24> imageToCompare)
     {
-        var result = DetectFaces(imageToCompare);
+        var faceToCompare = DetectFaces(imageToCompare);
 
-        if (result.IsFailure)
+        if (faceToCompare.IsFailure)
         {
             return Result<string>.Failure("There is no faces on uploaded image");
         }
         
-        var faceToCompare = new Face
-        {
-            Image = imageToCompare,
-            DetectionData = result.Value
-        };
-
-        Console.WriteLine($"{faceToCompare.DetectionData.Landmarks!.Count}");
-        
         foreach (var face in faces)
         {
-            var dot = CompareFaces(face, faceToCompare);
-            if (dot > RecognitionThreshold && face.PersonName != null)
+            var dot = CompareFaces(face.Embedding, faceToCompare.Value);
+            Console.WriteLine(dot);
+            if (dot > RecognitionThreshold)
             {
-                return Result<string>.Success(face.PersonName);
+                return Result<string>.Success(face.Person);
             }
         }
 

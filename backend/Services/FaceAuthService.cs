@@ -50,21 +50,12 @@ public class FaceAuthService
         {
             return Result<string>.Failure(result.Error);
         }
-        
-        imageStream.Position = 0;
-        string url = await storageService.UploadImageAsync(
-            facesDirectory,
-            Guid.NewGuid() + fileExtension,
-            imageStream
-        );
 
         // todo handle error
         await faceRepository.SaveAsync(new FaceData
         {
-            Url = url,
             Person = personName,
-            DetectorResult = result.Value
-            // i don't want to store image data in db
+            Embedding = result.Value
         });
 
         Task.Run(() => loggingService.Log());
@@ -72,12 +63,17 @@ public class FaceAuthService
         return Result<string>.Success("Face registered!");
     }
 
-    public void UnregisterFace(string personName)
+    public async Task<Result<string>> UnregisterFace(string personName)
     {
-        
-    }
+        var deleted = await faceRepository.DeleteByPersonName(personName);
+        if (deleted)
+        {
+            return Result<string>.Success($"Delete {personName} data");
+        }
 
-    // I should add more complex response
+        return Result<string>.Failure("Cannot delete face");
+    }
+    
     public async Task<Result<string>> VerifyFace(FaceVerificationRequest request)
     {
         try
@@ -87,30 +83,14 @@ public class FaceAuthService
             byte[] imageBytes = Convert.FromBase64String(request.ImageBase64);
             using var imageStream = new MemoryStream(imageBytes);
             var image = Image.Load<Rgb24>(imageStream);
-
-            // load faces from azure
-            //var registeredFacesData = settingsService.GetSettings().Faces;
-            var registeredFacesData = await faceRepository.GetAll();
             
-            Console.WriteLine(registeredFacesData.Count);
+            var faces = await faceRepository.GetAll();
 
-            var faces = new List<Face>();
-
-            foreach (var face in registeredFacesData)
+            foreach (var face in faces)
             {
-                Console.WriteLine(face.Person);
-
-                var storedFile = await storageService.SelectImageAsync(face.Url);
-                
-                faces.Add(new Face
-                {
-                    PersonName = face.Person,
-                    DetectionData = face.DetectorResult,
-                    Image = storedFile.AsImage()
-                });
+                Console.WriteLine($"{face.Person} - {face.Id}");
             }
             
-            // compare loaded face with ones from azure
             var faceRecognition = new FaceRecognition();
             var result = faceRecognition.CompareMultipleFaces(faces, image);
 
