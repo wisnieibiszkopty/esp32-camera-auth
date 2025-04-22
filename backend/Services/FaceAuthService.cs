@@ -72,7 +72,7 @@ public class FaceAuthService
         return Result<string>.Success("Face registered!");
     }
 
-    public void UnregisterFace()
+    public void UnregisterFace(string personName)
     {
         
     }

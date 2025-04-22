@@ -24,7 +24,9 @@ builder.Services.AddScoped<SecuritySettingsService>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<FaceAuthService>();
 
-// builder.Services.AddHostedService<MqttService>();
+// rabbitmq-plugins enable rabbitmq_mqtt
+builder.Services.AddSingleton<MqttController>();
+builder.Services.AddHostedService<MqttService>();
 
 builder.Services.AddSingleton<BotService>();
 

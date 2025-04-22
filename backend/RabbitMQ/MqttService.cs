@@ -12,11 +12,13 @@ public class MqttService : BackgroundService
     private readonly IMqttClient client;
     private readonly MqttClientOptions options;
     private readonly ILogger<MqttService> logger;
+    private readonly MqttController mqttController;
 
-    public MqttService(IConfiguration config, ILogger<MqttService> logger)
+    public MqttService(IConfiguration config, ILogger<MqttService> logger, MqttController mqttController)
     {
         try
         {
+            this.mqttController = mqttController;
             this.logger = logger;
             var factory = new MqttClientFactory();
             client = factory.CreateMqttClient();
@@ -32,35 +34,104 @@ public class MqttService : BackgroundService
         }
     }
 
-    private async Task ProcessMessage(string message)
+    // private async Task ProcessMessage(string message)
+    // {
+    //     try
+    //     {
+    //         var data = JsonConvert.DeserializeObject<RabbitData>(message);
+    //         logger.LogInformation($"Received data: {data.Id} - {data.Message}");
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         logger.LogError("Error occured: " + ex);
+    //     }
+    // }
+    
+    private async Task ProcessMessage(string topic, string message)
     {
         try
         {
-            var data = JsonConvert.DeserializeObject<RabbitData>(message);
-            logger.LogInformation($"Received data: {data.Id} - {data.Message}");
+            var method = mqttController.GetType()
+                .GetMethods()
+                .FirstOrDefault(m => m.GetCustomAttributes(typeof(MqttMethodAttribute), inherit: false)
+                .Cast<MqttMethodAttribute>()
+                .Any(a => a.Topic == topic));
+    
+            if (method != null)
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length == 1)
+                {
+                    var parameterType = parameters[0].ParameterType;
+                    try
+                    {
+                        var deserialized = JsonConvert.DeserializeObject(message, parameterType);
+                        method.Invoke(mqttController, new object[] { deserialized });
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError($"Error mapping message to method parameter: {ex}");
+                    }
+                }
+                else
+                {
+                    logger.LogWarning($"Invalid parameter count for method handling topic: {topic}");
+                }
+            }
+            else
+            {
+                logger.LogWarning($"No handler found for topic: {topic}");
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError("Error occured: " + ex);
+            logger.LogError("Error processing message: " + ex);
         }
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await client.ConnectAsync(options, stoppingToken);
-        logger.LogInformation("Connected to MQTT Broker");
+        try
+        {
+            await client.ConnectAsync(options, stoppingToken);
+            logger.LogInformation("Connected to MQTT Broker");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.StackTrace);
+            logger.LogError($"Failed to connect to MQTT broker: {ex.Message}");
+            Environment.Exit(1);
+            return;
+        }
 
-        var topic = new MqttTopicFilterBuilder()
-            .WithTopic(topicName)
-            .Build();
+        var topics = mqttController.GetType()
+            .GetMethods()
+            .SelectMany(m => m.GetCustomAttributes(typeof(MqttMethodAttribute), inherit: false))
+            .Cast<MqttMethodAttribute>()
+            .Select(a => a.Topic)
+            .Distinct()
+            .Select(topic => new MqttTopicFilterBuilder()
+                .WithTopic(topic)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build())
+            .ToList();
 
-        await client.SubscribeAsync(topic, stoppingToken);
-        logger.LogInformation($"Subscribed to: {topicName}");
+        var subscriptionOptions = new MqttClientSubscribeOptions
+        {
+            TopicFilters = topics 
+        };
+
+        logger.LogInformation(string.Join(", ", subscriptionOptions.TopicFilters.Select(t=> t.Topic)));
+        
+        await client.SubscribeAsync(subscriptionOptions, stoppingToken);
+        
+        logger.LogInformation($"Subscribed to topics: {string.Join(", ", topics.Select(t => t.Topic))}");
         
         client.ApplicationMessageReceivedAsync += async e =>
         {
+            logger.LogInformation($"Message received!");
             var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-            await ProcessMessage(message);
+            await ProcessMessage(topicName, message);
         };
         
         while (!stoppingToken.IsCancellationRequested)
@@ -77,7 +148,7 @@ public class MqttService : BackgroundService
         try
         {
             var mqttMessage = new MqttApplicationMessageBuilder()
-                .WithTopic(topicName)               
+                .WithTopic(topic)               
                 .WithPayload(Encoding.UTF8.GetBytes(message))  
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
                 .WithRetainFlag(false)              
