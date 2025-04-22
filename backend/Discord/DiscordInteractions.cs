@@ -136,7 +136,7 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
         }
         else
         {
-            await RespondAsync(result.ErrorMessage);
+            await RespondAsync(result.Error);
         }
     }
     

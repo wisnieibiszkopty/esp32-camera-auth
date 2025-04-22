@@ -1,4 +1,6 @@
+using backend.Data.Repositories;
 using backend.Models;
+using backend.Models.Dto;
 using backend.Models.events;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -10,13 +12,16 @@ public class FaceAuthService
     private readonly string facesDirectory = "faces";
     
     private readonly IStorageService storageService;
+    private readonly IFacesRepository facesRepository;
     private readonly SecuritySettingsService settingsService;
-
-    public event EventHandler<FaceRecognisedEventArgs>? FaceRecognised; 
     
-    public FaceAuthService(IStorageService storageService, SecuritySettingsService settingsService)
+    public FaceAuthService(
+        IStorageService storageService,
+        IFacesRepository facesRepository,
+        SecuritySettingsService settingsService)
     {
         this.storageService = storageService;
+        this.facesRepository = facesRepository;
         this.settingsService = settingsService;
     }
     
@@ -26,7 +31,6 @@ public class FaceAuthService
         var settings = settingsService.GetSettings();
         if (settings.Faces.Count == settings.MaxRecognizableFaces)
         {
-            // failed
             return Result<string>.Failure("Achieved limit of registered faces");
         }
 
@@ -36,20 +40,20 @@ public class FaceAuthService
 
         var image = Image.Load<Rgb24>(imageStream);
         var faceRecognition = new FaceRecognition();
-        var faces = faceRecognition.DetectFaces(image);
-
-        if (faces.Count == 0)
+        var result = faceRecognition.DetectFaces(image);
+        
+        if (result.IsFailure)
         {
-            // failed no face on image
-            return Result<string>.Failure("Didn't recognized any face on image");
+            return Result<string>.Failure(result.Error);
         }
-
-        if (faces.Count > 1)
+        
+        // may be redundant
+        await facesRepository.Insert(new Face
         {
-            // failed only 1 face can be on image
-            return Result<string>.Failure("Cannot add face, because multiple were found");
-        }
-
+            PersonName = personName,
+            DetectionData = result.Value
+        });
+        
         imageStream.Position = 0;
         string url = await storageService.UploadImageAsync(
             facesDirectory,
@@ -64,7 +68,7 @@ public class FaceAuthService
             Url = url
         });
         
-        return Result<string>.Success(url);
+        return Result<string>.Success("Face registered!");
     }
 
     public void UnregisterFace()
@@ -72,13 +76,52 @@ public class FaceAuthService
         
     }
 
-    public void VerifyFace()
+    // I should add more complex response
+    public async Task<Result<string>> VerifyFace(FaceVerificationRequest request)
     {
-        // detect face on uploaded image
-        // handle errors
-        // load faces from azure
-        // compare loaded face with ones from azure
-        // if one of them is same return data about face
-        // handle logs
+        try
+        {
+            // todo check if verification isn't blocked
+
+            byte[] imageBytes = Convert.FromBase64String(request.ImageBase64);
+            using var imageStream = new MemoryStream(imageBytes);
+            var image = Image.Load<Rgb24>(imageStream);
+
+            // load faces from azure
+            var registeredFacesData = settingsService.GetSettings().Faces;
+            var files = await storageService.SelectImagesAsync(facesDirectory);
+
+            var faces = new List<FaceData>();
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                Console.WriteLine(registeredFacesData[i].Name);
+                faces.Add(new FaceData
+                {
+                    Person = registeredFacesData[i].Name,
+                    Face = Image.Load<Rgb24>(files[i].File)
+                });
+            }
+            
+            // compare loaded face with ones from azure
+            var faceRecognition = new FaceRecognition();
+            var result = faceRecognition.CompareMultipleFaces(faces, image);
+
+            if (result.IsFailure)
+            {
+                return Result<string>.Failure(result.Error);
+            }
+            
+            // if one of them is same return data about face
+            // handle logs   
+            
+            return Result<string>.Success(result.Value);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+            return Result<string>.Failure(e.Message);
+        }
     }
 }

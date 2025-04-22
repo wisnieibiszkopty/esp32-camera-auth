@@ -55,7 +55,7 @@ public class MqttService : BackgroundService
 
         await client.SubscribeAsync(topic, stoppingToken);
         logger.LogInformation($"Subscribed to: {topicName}");
-
+        
         client.ApplicationMessageReceivedAsync += async e =>
         {
             var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);

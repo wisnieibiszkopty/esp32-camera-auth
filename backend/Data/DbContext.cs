@@ -1,4 +1,5 @@
 using backend.Models;
+using FaceAiSharp;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
@@ -14,6 +15,7 @@ public class DbContext
     }
 
     public IMongoCollection<SecuritySettings> SecuritySettings => database.GetCollection<SecuritySettings>("SecuritySettings");
+    public IMongoCollection<Face> Faces => database.GetCollection<Face>("Faces");
     public IMongoCollection<Log> Logs => database.GetCollection<Log>("Logs");
 
 }
