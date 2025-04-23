@@ -1,16 +1,16 @@
+using backend.Models;
+
 namespace backend.Services;
 
 public interface IStorageService
 {
     Task<string> UploadImageAsync(string directory, string fileName, Stream fileStream);
-    void DeleteImageAsync();
-    void SelectImageAsync();
-    void SelectImagesAsync();
+    Task DeleteImageAsync();
+    Task<FileData> SelectImageAsync(string path);
+    Task<List<FileData>> SelectImagesAsync(string directory);
     
     // TODO Move these methods to another class
-    // void UploadRecognizableFace();
     // void RemoveRecognizableFace();
-    // void SelectRecognizableFaces();
     //
     // void UploadIncidentPhoto();
     // void SelectIncidentPhotos();

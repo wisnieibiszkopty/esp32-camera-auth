@@ -1,5 +1,8 @@
+using backend.Data.Repositories;
 using backend.Models;
+using backend.Models.Dto;
 using backend.Models.events;
+using backend.Services.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,13 +13,19 @@ public class FaceAuthService
     private readonly string facesDirectory = "faces";
     
     private readonly IStorageService storageService;
+    private readonly IFaceRepository faceRepository;
+    private readonly ILoggingService loggingService;
     private readonly SecuritySettingsService settingsService;
-
-    public event EventHandler<FaceRecognisedEventArgs>? FaceRecognised; 
     
-    public FaceAuthService(IStorageService storageService, SecuritySettingsService settingsService)
+    public FaceAuthService(
+        IStorageService storageService,
+        IFaceRepository faceRepository,
+        ILoggingService loggingService,
+        SecuritySettingsService settingsService)
     {
         this.storageService = storageService;
+        this.faceRepository = faceRepository;
+        this.loggingService = loggingService;
         this.settingsService = settingsService;
     }
     
@@ -24,9 +33,8 @@ public class FaceAuthService
     {
         // check if new face can be registered
         var settings = settingsService.GetSettings();
-        if (settings.Faces.Count == settings.MaxRecognizableFaces)
+        if (await faceRepository.GetCount() == settings.MaxRecognizableFaces)
         {
-            // failed
             return Result<string>.Failure("Achieved limit of registered faces");
         }
 
@@ -36,49 +44,71 @@ public class FaceAuthService
 
         var image = Image.Load<Rgb24>(imageStream);
         var faceRecognition = new FaceRecognition();
-        var faces = faceRecognition.DetectFaces(image);
-
-        if (faces.Count == 0)
+        var result = faceRecognition.DetectFaces(image);
+        
+        if (result.IsFailure)
         {
-            // failed no face on image
-            return Result<string>.Failure("Didn't recognized any face on image");
+            return Result<string>.Failure(result.Error);
         }
-
-        if (faces.Count > 1)
-        {
-            // failed only 1 face can be on image
-            return Result<string>.Failure("Cannot add face, because multiple were found");
-        }
-
-        imageStream.Position = 0;
-        string url = await storageService.UploadImageAsync(
-            facesDirectory,
-            Guid.NewGuid() + fileExtension,
-            imageStream
-        );
 
         // todo handle error
-        await settingsService.AddFace(new ImageData
+        await faceRepository.SaveAsync(new FaceData
         {
-            Name = personName,
-            Url = url
+            Person = personName,
+            Embedding = result.Value
         });
+
+        Task.Run(() => loggingService.Log());
         
-        return Result<string>.Success(url);
+        return Result<string>.Success("Face registered!");
     }
 
-    public void UnregisterFace()
+    public async Task<Result<string>> UnregisterFace(string personName)
     {
-        
-    }
+        var deleted = await faceRepository.DeleteByPersonName(personName);
+        if (deleted)
+        {
+            return Result<string>.Success($"Delete {personName} data");
+        }
 
-    public void VerifyFace()
+        return Result<string>.Failure("Cannot delete face");
+    }
+    
+    public async Task<Result<string>> VerifyFace(FaceVerificationRequest request)
     {
-        // detect face on uploaded image
-        // handle errors
-        // load faces from azure
-        // compare loaded face with ones from azure
-        // if one of them is same return data about face
-        // handle logs
+        try
+        {
+            // todo check if verification isn't blocked
+
+            byte[] imageBytes = Convert.FromBase64String(request.ImageBase64);
+            using var imageStream = new MemoryStream(imageBytes);
+            var image = Image.Load<Rgb24>(imageStream);
+            
+            var faces = await faceRepository.GetAll();
+
+            foreach (var face in faces)
+            {
+                Console.WriteLine($"{face.Person} - {face.Id}");
+            }
+            
+            var faceRecognition = new FaceRecognition();
+            var result = faceRecognition.CompareMultipleFaces(faces, image);
+
+            if (result.IsFailure)
+            {
+                return Result<string>.Failure(result.Error);
+            }
+            
+            // if one of them is same return data about face
+            // handle logs   
+            
+            return Result<string>.Success(result.Value);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            Console.WriteLine(e.StackTrace);
+            return Result<string>.Failure(e.Message);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using backend.Data;
 using backend.Models;
+using backend.Models.Dto;
 using backend.Services;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -12,14 +13,12 @@ namespace backend.Discord;
 public class DiscordController : ControllerBase
 {
     private readonly BotService botService;
-    private readonly IStorageService storageService;
-    private readonly DbContext context;
+    private readonly FaceAuthService authService;
 
-    public DiscordController(BotService service, IStorageService storageService, DbContext context)
+    public DiscordController(BotService service, FaceAuthService authService)
     {
         botService = service;
-        this.storageService = storageService;
-        this.context = context;
+        this.authService = authService;
     }
         
     [HttpPost("send")]
@@ -28,49 +27,17 @@ public class DiscordController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Message))
         {
             return BadRequest("Message is required.");   
-        }
-
+        }   
+        
         await botService.SendMessageAsync(request.Message);
         return Ok("Message sent.");
     }
 
-    // [HttpPost("upload")]
-    // public async Task<IActionResult> UploadFile(IFormFile file)
-    // {
-    //     if (file == null || file.Length == 0)
-    //     {
-    //         return BadRequest("No file uploaded.");
-    //     }
-    //
-    //     using (var stream = file.OpenReadStream())
-    //     {
-    //         await storageService.UploadImageAsync(file.FileName, stream);
-    //     }
-    //
-    //     return Ok("File uploaded successfully.");
-    // }
-
-    // temporary endpoints for testing database connection
-    // [HttpPost("add")]
-    // public async Task<IActionResult> AddLog()
-    // {
-    //     await context.Logs.InsertOneAsync(new Log{Message = "test"});
-    //     return Ok("Added");
-    // }
-    //
-    // [HttpGet("get")]
-    // public async Task<List<Log>> GetLogs()
-    // {
-    //     var logs = await context.Logs.Find(_ => true).ToListAsync();
-    //     return logs;
-    // }
-    //
-    // [HttpDelete]
-    // public async Task<IActionResult> DeleteLogs()
-    // {
-    //     await context.Logs.DeleteManyAsync(_ => true);
-    //     return Ok();
-    // }
+    [HttpPost("face-rec")]
+    public async Task<IActionResult> VerifyFace([FromBody] FaceVerificationRequest request)
+    {
+        return Ok(await authService.VerifyFace(request));
+    }
     
     public class MessageRequest
     {

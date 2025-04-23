@@ -136,7 +136,21 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
         }
         else
         {
-            await RespondAsync(result.ErrorMessage);
+            await RespondAsync(result.Error);
+        }
+    }
+
+    [SlashCommand("remove-face", "Remove face from list of recognizable faces")]
+    public async Task RemoveFace(string personName)
+    {
+        var result = await faceAuthService.UnregisterFace(personName);
+        if (result.IsSuccess)
+        {
+            await RespondAsync(result.Value);
+        }
+        else
+        {
+            await RespondAsync(result.Error);
         }
     }
     
