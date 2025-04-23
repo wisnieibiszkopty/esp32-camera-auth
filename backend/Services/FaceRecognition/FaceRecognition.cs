@@ -34,13 +34,13 @@ public class FaceRecognition : IFaceRecognition
         if (faces.Count == 0)
         {
             // failed no face on image
-            return Result<float[]>.Failure("Didn't recognized any face on image");
+            return Result<float[]>.Failure(nameof(DetectionResult.None));
         }
         
         if (faces.Count > 1)
         {
             // failed only 1 face can be on image
-            return Result<float[]>.Failure("Cannot add face, because multiple were found");
+            return Result<float[]>.Failure(nameof(DetectionResult.Multiple));
         }
 
         var embedding = GenerateEmbedding(image, faces.First());
@@ -59,7 +59,7 @@ public class FaceRecognition : IFaceRecognition
 
         if (faceToCompare.IsFailure)
         {
-            return Result<string>.Failure("There is no faces on uploaded image");
+            return Result<string>.Failure(faceToCompare.Error);
         }
         
         foreach (var face in faces)
@@ -70,6 +70,8 @@ public class FaceRecognition : IFaceRecognition
             {
                 return Result<string>.Success(face.Person);
             }
+            
+            return Result<string>.Failure(nameof(DetectionResult.Invalid));
         }
 
         return Result<string>.Failure("Face doesn't match ones in db");

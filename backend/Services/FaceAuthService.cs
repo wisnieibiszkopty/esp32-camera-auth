@@ -57,8 +57,6 @@ public class FaceAuthService
             Person = personName,
             Embedding = result.Value
         });
-
-        Task.Run(() => loggingService.Log());
         
         return Result<string>.Success("Face registered!");
     }
@@ -85,23 +83,27 @@ public class FaceAuthService
             var image = Image.Load<Rgb24>(imageStream);
             
             var faces = await faceRepository.GetAll();
-
-            foreach (var face in faces)
-            {
-                Console.WriteLine($"{face.Person} - {face.Id}");
-            }
             
             var faceRecognition = new FaceRecognition();
             var result = faceRecognition.CompareMultipleFaces(faces, image);
-
+            
             if (result.IsFailure)
             {
+                DetectionResult detectionResult;
+                if (result.Error == nameof(DetectionResult.Multiple))
+                {
+                    detectionResult = DetectionResult.Multiple;
+                }
+                else
+                {
+                    detectionResult = DetectionResult.None;
+                }
+                
+                Task.Run(() => loggingService.Log(detectionResult, request));
                 return Result<string>.Failure(result.Error);
             }
             
-            // if one of them is same return data about face
-            // handle logs   
-            
+            Task.Run(() => loggingService.Log(DetectionResult.Detected, request, result.Value));
             return Result<string>.Success(result.Value);
         }
         catch (Exception e)

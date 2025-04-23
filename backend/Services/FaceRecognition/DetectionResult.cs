@@ -1,3 +1,9 @@
 namespace backend.Services;
 
-public record DetectionResult();
+public enum DetectionResult
+{
+    None,
+    Detected,
+    Invalid,
+    Multiple
+}
