@@ -89,15 +89,13 @@ public class FaceAuthService
             
             if (result.IsFailure)
             {
-                DetectionResult detectionResult;
-                if (result.Error == nameof(DetectionResult.Multiple))
+                DetectionResult detectionResult = result.Error switch
                 {
-                    detectionResult = DetectionResult.Multiple;
-                }
-                else
-                {
-                    detectionResult = DetectionResult.None;
-                }
+                    nameof(DetectionResult.Multiple) => DetectionResult.Multiple,
+                    nameof(DetectionResult.None) => DetectionResult.None,
+                    nameof(DetectionResult.Invalid) => DetectionResult.Invalid,
+                    _ => DetectionResult.None
+                };
                 
                 Task.Run(() => loggingService.Log(detectionResult, request));
                 return Result<string>.Failure(result.Error);

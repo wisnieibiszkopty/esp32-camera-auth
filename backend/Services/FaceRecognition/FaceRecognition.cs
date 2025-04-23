@@ -71,9 +71,8 @@ public class FaceRecognition : IFaceRecognition
                 return Result<string>.Success(face.Person);
             }
             
-            return Result<string>.Failure(nameof(DetectionResult.Invalid));
         }
 
-        return Result<string>.Failure("Face doesn't match ones in db");
+        return Result<string>.Failure(nameof(DetectionResult.Invalid));
     }
 }

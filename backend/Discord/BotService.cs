@@ -69,7 +69,7 @@ public class BotService
         }
     }
 
-    public async Task SendMessageWithFileAsync(ulong channelId, string title, string message, string url)
+    public async Task SendMessageWithFileAsync(ulong channelId, string title, string message, Stream stream, string fileName)
     {
         var channel = client.GetChannel(channelId) as IMessageChannel;
         if (channel != null)
@@ -77,10 +77,15 @@ public class BotService
             var embed = new EmbedBuilder()
                 .WithTitle(title)
                 .WithDescription(message)
-                .WithImageUrl(url)
+                .WithImageUrl($"attachment://{fileName}")
                 .Build();
 
-            await channel.SendMessageAsync(embed: embed);
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
+
+            await channel.SendFileAsync(stream, fileName, embed: embed);
         }
     }
 
