@@ -69,6 +69,26 @@ public class BotService
         }
     }
 
+    public async Task SendMessageWithFileAsync(ulong channelId, string title, string message, Stream stream, string fileName)
+    {
+        var channel = client.GetChannel(channelId) as IMessageChannel;
+        if (channel != null)
+        {
+            var embed = new EmbedBuilder()
+                .WithTitle(title)
+                .WithDescription(message)
+                .WithImageUrl($"attachment://{fileName}")
+                .Build();
+
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
+
+            await channel.SendFileAsync(stream, fileName, embed: embed);
+        }
+    }
+
     private async Task OnMessageReceivedAsync(SocketMessage message)
     {
         if (message.Author.IsBot) return;

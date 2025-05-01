@@ -10,6 +10,13 @@ public class FaceRepository : RepositoryBase<FaceData>, IFaceRepository
     {
     }
 
+    public async Task<FaceData?> GetByPerson(string person)
+    {
+        return await collection
+            .Find(Builders<FaceData>.Filter.Eq(f => f.Person, person))
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<bool> DeleteByPersonName(string name)
     {
         var filter = Builders<FaceData>.Filter.Eq(f => f.Person, name);

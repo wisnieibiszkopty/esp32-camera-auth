@@ -57,33 +57,34 @@ public class SecuritySettingsService
         return result;
     }
     
-    // TODO handle limit
-    public async Task AddComment(string comment)
+    public async Task<Result<string>> AddComment(string comment)
     {
         if (_commentsLimit == _settings.CommentPool.Count)
         {
-            // failed
-            return;
+            return Result<string>.Failure("Achieved comments limit");
         }
         
         _settings.CommentPool.Add(comment);
         await _repository.UpdateAsync(_settings);
+        return Result<string>.Success(comment);
     }
 
     // todo don't work
-    public async Task RemoveComment(int index)
+    public async Task<Result<string>> RemoveComment(int index)
     {
-        var comments = _settings.CommentPool;
+        var comments = GetSettings().CommentPool;
         int count = comments.Count;
-
-        if (index > count + 1)
+        if (index > count)
         {
-            // todo failed
-            return;
+            return Result<string>.Failure("Index is incorrect - goes beyond the length of the comment list");
         }
+
+        var deletedComment = comments[index - 1];
+        comments.RemoveAt(index-1);
         
-        comments.RemoveAt(index);
         _settings.CommentPool = comments;
         await _repository.UpdateAsync(_settings);
+        
+        return Result<string>.Success(deletedComment);
     }
 }
