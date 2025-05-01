@@ -3,6 +3,7 @@ using backend.Models;
 using backend.Models.Dto;
 using backend.Models.Enums;
 using backend.Services.Logging;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Services;
 
@@ -124,6 +125,7 @@ public class LoggingService: ILoggingService
         }
     }
 
+    [Authorize]
     public async Task<LogsMetrics> GetMetrics(Period? period)
     {
         var logs = await logRepository.GetMetrics(period ?? null);
