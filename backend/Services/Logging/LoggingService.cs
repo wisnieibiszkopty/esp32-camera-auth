@@ -1,6 +1,7 @@
 using backend.Data.Repositories;
 using backend.Models;
 using backend.Models.Dto;
+using backend.Models.Enums;
 using backend.Services.Logging;
 
 namespace backend.Services;
@@ -41,7 +42,6 @@ public class LoggingService: ILoggingService
         successChannelId = ulong.Parse(config["Discord:Success"]!);
     }
     
-    // when face don't match ones in db, instead of getting Invalid i get None
     private async Task LogToDiscord(DetectionResult detectionResult, DateTime time, string deviceName, Stream image, string? personName = null)
     {
         (ulong channelId, string messageInfo) = detectionResult switch
@@ -72,8 +72,6 @@ public class LoggingService: ILoggingService
             message += $"\n{randomComment}";
         }
         
-        Console.WriteLine(message);
-        
         await botService.SendMessageWithFileAsync(
             channelId,
             $"{deviceName} | {time}",
@@ -95,13 +93,10 @@ public class LoggingService: ILoggingService
         }
         
         string fileName = $"{Guid.NewGuid()}.jpg";
-        Console.WriteLine($"filename: ${fileName}");
         byte[] imageBytes = Convert.FromBase64String(request.ImageBase64);
         using var imageStream = new MemoryStream(imageBytes);
         imageStream.Position = 0;
         var url = await storageService.UploadImageAsync(containersMapping[detectionResult], fileName, imageStream);
-        Console.WriteLine($"filename: ${fileName}, url: {url}");
-        Console.WriteLine($"Person name: {personName}");
         
         var log = new Log
         {
@@ -127,5 +122,25 @@ public class LoggingService: ILoggingService
                 Console.WriteLine(e.Message);
             }
         }
+    }
+
+    public async Task<LogsMetrics> GetMetrics(Period? period)
+    {
+        var logs = await logRepository.GetMetrics(period ?? null);
+        foreach (var typeGroup in logs.Metrics)
+        {
+            Console.WriteLine($"LogType: {typeGroup.Key}");
+            foreach (var dateCount in typeGroup.Value)
+            {
+                Console.WriteLine($"  {dateCount.Date:yyyy-MM-dd}: {dateCount.Count} log(s)");
+            }
+        }
+
+        return logs;
+    }
+
+    public async Task<PagedResult<Log>> GetLogs(int page, int size, DetectionResult? result, string? personName, DateTime? startDate, DateTime? endDate)
+    {
+        return await logRepository.GetPagesAsync(page, size, result, personName, startDate, endDate);
     }
 }
