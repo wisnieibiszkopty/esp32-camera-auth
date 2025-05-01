@@ -1,0 +1,23 @@
+@using dashboard.Auth
+
+@inject AuthStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+@page "/Login"
+<h3>Login</h3>
+<button @onclick="SendLoginRequest">Login</button>
+
+@code {
+
+    private async Task SendLoginRequest()
+    {
+        // TODO
+        // 1. Make form
+        // 2. Call api with data from form
+        // 3. Save token in local storage
+        // 4. Use AuthProvider to login user
+        AuthProvider.MarkUserAsAuthenticated("test");
+        // 5. Redirect
+        Navigation.NavigateTo("/metrics");
+    }
+}
