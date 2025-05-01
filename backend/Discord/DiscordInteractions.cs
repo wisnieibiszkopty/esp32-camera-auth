@@ -79,36 +79,63 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
     }
 
     // ALE MI WJECHAŁO DEJA VU PRZECIEŻ JA TO WE ŚNIE PISAŁEM
-    [SlashCommand("comments-get", "Shows list of available comments")]
-    public async Task GetComments()
+    [SlashCommand("show-comments", "Shows list of available comments")]
+    public async Task ShowComments()
     {
         var comments = settingsService.GetSettings().CommentPool;
         var sb = new StringBuilder("List of available comments: ");
-        
+
+        int index = 1;
         foreach (var comment in comments)
         {
-            sb.Append($"\n{comment}");
+            sb.Append($"\n{index}. {comment}");
+            index++;
         }
         
         await RespondAsync(sb.ToString());
     }
 
-    [SlashCommand("comments-add", "Adds new comment, which will be attached to violation photo")]
+    [SlashCommand("add-comment", "Adds new comment, which will be attached to violation photo")]
     public async Task AddComment(string comment)
     {
-        await settingsService.AddComment(comment);
-        await RespondAsync($"Comment: '{comment}' was added to list!");
-    }
-
-    // don't work
-    [SlashCommand("comments-remove", "Remove comment from list")]
-    public async Task RemoveComment(int index)
-    {
-        await settingsService.RemoveComment(index);
-        await RespondAsync($"Comment with index: {index}");
+        var result = await settingsService.AddComment(comment);
+        if (result.IsSuccess)
+        {
+            await RespondAsync($"Comment: '{result.Value}' was added to list!");   
+        }
+        else
+        {
+            await RespondAsync(result.Error);
+        }
     }
     
-    // Maybe i shouldn't upload face via discord?
+    [SlashCommand("remove-comment", "Remove comment from list (indexed from 1)")]
+    public async Task RemoveComment(int index)
+    {
+        var result = await settingsService.RemoveComment(index);
+        if (result.IsFailure)
+        {
+            await RespondAsync(result.Error);   
+        }
+        else
+        {
+            await RespondAsync($"Deleted comment: {result.Value}");
+        }
+    }
+
+    [SlashCommand("show-faces", "Shows list of currently registered faces")]
+    public async Task ShowFaces()
+    {
+        var faces = await faceAuthService.GetFaces();
+        var sb = new StringBuilder("List of registered faces: ");
+        foreach (var face in faces)
+        {
+            sb.Append($"\n{face}");
+        }
+
+        await RespondAsync(sb.ToString());
+    }
+    
     [SlashCommand("register-face", "Registers new face which can be detected")]
     public async Task RegisterFace(string personName, Attachment image)
     {
@@ -118,20 +145,14 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
             return;
         }
         
-        Console.WriteLine(image.ContentType);
-        Console.WriteLine(image.Filename);
-        
         using var httpClient = new HttpClient();
         using var stream = await httpClient.GetStreamAsync(image.Url);
-        
-        Console.WriteLine(image.Url);
         
         string extenstion = Path.GetExtension(image.Filename);
         var result = await faceAuthService.RegisterFace(personName, stream, extenstion);
         
         if (result.IsSuccess)
         {
-            //await SendMessageToChannel(personName, result.Data);
             await RespondAsync("Registered new face!");
         }
         else
@@ -151,20 +172,6 @@ public class DiscordInteractions : InteractionModuleBase<SocketInteractionContex
         else
         {
             await RespondAsync(result.Error);
-        }
-    }
-    
-    private async Task SendMessageToChannel(string message, string url)
-    {
-        var channel = Context.Guild.GetTextChannel(faceChannelId);
-        if (channel != null)
-        {
-            logger.LogDebug(channel.Id.ToString());
-            await channel.SendMessageAsync(message + "\n" + url);
-        }
-        else
-        {
-            logger.LogError("Cannot access faces channel");
         }
     }
     

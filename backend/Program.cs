@@ -18,8 +18,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// FaceRecognition probably shouldn't be service
-//builder.Services.AddScoped<IFaceRecognition, FaceRecognition>();
 builder.Services.AddScoped<IStorageService, AzureStorageService>();
 
 builder.Services.AddDatabase(builder.Configuration);
@@ -35,13 +33,7 @@ builder.Services.AddScoped<FaceAuthService>();
 
 builder.Services.AddSingleton<BotService>();
 
-
 var app = builder.Build();
-
-foreach (var key in app.Configuration.AsEnumerable())
-{
-    Console.WriteLine($"Key: {key.Key}, Value: {key.Value}");
-}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -12,32 +12,43 @@ public class FaceAuthService
 {
     private readonly string facesDirectory = "faces";
     
-    private readonly IStorageService storageService;
     private readonly IFaceRepository faceRepository;
     private readonly ILoggingService loggingService;
     private readonly SecuritySettingsService settingsService;
     
     public FaceAuthService(
-        IStorageService storageService,
         IFaceRepository faceRepository,
         ILoggingService loggingService,
         SecuritySettingsService settingsService)
     {
-        this.storageService = storageService;
         this.faceRepository = faceRepository;
         this.loggingService = loggingService;
         this.settingsService = settingsService;
     }
+
+    public async Task<List<string>> GetFaces()
+    {
+        var faces = await faceRepository.GetAll();
+        return faces.Select(f => f.Person).ToList();
+    }
     
+    // face was registered, however discord bot didn't send message to channel
     public async Task<Result<string>> RegisterFace(string personName, Stream rawStream, string fileExtension)
     {
-        // check if new face can be registered
         var settings = settingsService.GetSettings();
         if (await faceRepository.GetCount() == settings.MaxRecognizableFaces)
         {
             return Result<string>.Failure("Achieved limit of registered faces");
         }
 
+        var face = await faceRepository.GetByPerson(personName);
+
+        if (face != null)
+        {
+            return Result<string>.Failure("Person with that name already exists");
+        }
+        
+        
         using var imageStream = new MemoryStream();
         await rawStream.CopyToAsync(imageStream);
         imageStream.Position = 0;
@@ -63,6 +74,7 @@ public class FaceAuthService
 
     public async Task<Result<string>> UnregisterFace(string personName)
     {
+        // also delete from storage
         var deleted = await faceRepository.DeleteByPersonName(personName);
         if (deleted)
         {
