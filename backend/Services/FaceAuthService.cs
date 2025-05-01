@@ -76,8 +76,6 @@ public class FaceAuthService
     {
         try
         {
-            // todo check if verification isn't blocked
-
             byte[] imageBytes = Convert.FromBase64String(request.ImageBase64);
             using var imageStream = new MemoryStream(imageBytes);
             var image = Image.Load<Rgb24>(imageStream);

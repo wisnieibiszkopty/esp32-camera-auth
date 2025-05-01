@@ -81,14 +81,8 @@ public class LoggingService: ILoggingService
             image,
             $"{Guid.NewGuid()}-{time}.jpg"
         );
-        // There are 3 channels on discord -> success, detection-failed and violation
-        // message should be sent to proper channel based on detectionResult
     }
-    
-    // check logging level
-    // save image in azure
-    // save log in db
-    // send alert to discord
+
     public async Task Log(DetectionResult detectionResult, FaceVerificationRequest request, string? personName = null)
     {
         var securityLevel = securityService.GetSettings().SecurityLevel;

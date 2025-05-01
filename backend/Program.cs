@@ -7,6 +7,11 @@ using backend.Services.Logging;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Configuration.AddAzureAppConfiguration(options =>
+{
+    var endpoint = builder.Configuration["Config:Endpoint"];
+    options.Connect(endpoint);
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -32,6 +37,11 @@ builder.Services.AddSingleton<BotService>();
 
 
 var app = builder.Build();
+
+foreach (var key in app.Configuration.AsEnumerable())
+{
+    Console.WriteLine($"Key: {key.Key}, Value: {key.Value}");
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
