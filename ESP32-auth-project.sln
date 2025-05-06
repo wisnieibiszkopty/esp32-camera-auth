@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backend", "backend\backend.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dashboard", "dashboard\dashboard.csproj", "{39E14BA0-4CF1-4EEE-B809-C5067A587EBC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfigApi", "ConfigApi\ConfigApi.csproj", "{DF85D2B1-3039-43B8-A607-50D112EEB868}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{39E14BA0-4CF1-4EEE-B809-C5067A587EBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{39E14BA0-4CF1-4EEE-B809-C5067A587EBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{39E14BA0-4CF1-4EEE-B809-C5067A587EBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF85D2B1-3039-43B8-A607-50D112EEB868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF85D2B1-3039-43B8-A607-50D112EEB868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF85D2B1-3039-43B8-A607-50D112EEB868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF85D2B1-3039-43B8-A607-50D112EEB868}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
