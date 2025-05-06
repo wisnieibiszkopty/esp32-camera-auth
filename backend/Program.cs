@@ -45,7 +45,6 @@ builder.Services.AddScoped<IStorageService, AzureStorageService>();
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddRepositories();
 
-
 builder.Services.AddScoped<SecuritySettingsService>();
 builder.Services.AddScoped<AdminAuthService>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
