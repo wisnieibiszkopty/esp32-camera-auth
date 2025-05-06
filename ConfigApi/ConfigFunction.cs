@@ -31,7 +31,7 @@ public class ConfigFunction
                 return new BadRequestObjectResult("Missing ConnectionString from body");
             }
 
-            if (!connectionData.ConnectionString.Equals(_config["Config:Endpoint"]))
+            if (!connectionData.ConnectionString.Equals(_config["Endpoint"]))
             {
                 return new BadRequestObjectResult("Invalid ConnectionString");
             }

@@ -6,7 +6,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.Configuration.AddAzureAppConfiguration(options =>
 {
-    var endpoint = builder.Configuration["Config:Endpoint"];
+    var endpoint = builder.Configuration["Endpoint"];
     options.Connect(endpoint);
 });
 
