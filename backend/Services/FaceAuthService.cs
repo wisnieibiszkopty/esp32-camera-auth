@@ -1,7 +1,6 @@
 using backend.Data.Repositories;
 using backend.Models;
 using backend.Models.Dto;
-using backend.Models.events;
 using backend.Services.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;

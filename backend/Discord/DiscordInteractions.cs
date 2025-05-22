@@ -1,12 +1,8 @@
 using System.Text;
 using backend.Discord.Models;
-using backend.Models;
-using backend.Models.events;
 using backend.Services;
 using Discord;
-using Discord.Commands;
 using Discord.Interactions;
-using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace backend.Discord;
 

@@ -1,165 +1,121 @@
 using System.Text;
+using backend.Models.Dto;
+using backend.Services;
 using MQTTnet;
-using MQTTnet.Protocol;
 using Newtonsoft.Json;
 
 namespace backend.RabbitMQ;
 
 public class MqttService : BackgroundService
 {
-    private readonly string topicName = "test";
+    private readonly string topicName = "verify/face";
+    private readonly string resultTopicName = "verify/result";
     
     private readonly IMqttClient client;
     private readonly MqttClientOptions options;
+    
     private readonly ILogger<MqttService> logger;
-    private readonly MqttController mqttController;
+    private readonly IServiceProvider serviceProvider;
 
-    public MqttService(IConfiguration config, ILogger<MqttService> logger, MqttController mqttController)
+    public MqttService(IConfiguration config, ILogger<MqttService> logger, IServiceProvider serviceProvider)
     {
-        try
+        this.logger = logger;
+        this.serviceProvider = serviceProvider;
+        
+        var factory = new MqttClientFactory();
+        client = factory.CreateMqttClient();
+
+        client.ApplicationMessageReceivedAsync += async e =>
         {
-            this.mqttController = mqttController;
-            this.logger = logger;
-            var factory = new MqttClientFactory();
-            client = factory.CreateMqttClient();
-            options = new MqttClientOptionsBuilder()
-                .WithTcpServer(config["Rabbit:Url"], int.Parse(config["Rabbit:Port"]!))
-                .WithCredentials(config["Rabbit:Login"], config["Rabbit:Password"])
-                .WithCleanSession()
-                .Build();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("RabbitMQ configuration was not found " + e);
-        }
+            logger.LogInformation("New event!");
+            var payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+            logger.LogInformation(payload);
+            await HandleEvent(payload);
+        };
+        
+        options = new MqttClientOptionsBuilder()
+            .WithTcpServer(config["Rabbit:Url"], int.Parse(config["Rabbit:Port"]))
+            .WithCredentials(config["Rabbit:Login"], config["Rabbit:Password"])
+            .WithCleanSession()
+            .Build();
     }
 
-    // private async Task ProcessMessage(string message)
-    // {
-    //     try
-    //     {
-    //         var data = JsonConvert.DeserializeObject<RabbitData>(message);
-    //         logger.LogInformation($"Received data: {data.Id} - {data.Message}");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         logger.LogError("Error occured: " + ex);
-    //     }
-    // }
+    private async Task SendMessage(string topic, string message)
+    {
+        var mqttMessage = new MqttApplicationMessageBuilder()
+            .WithTopic(topic)
+            .WithPayload(Encoding.UTF8.GetBytes(message))
+            .WithRetainFlag(false)
+            .Build();
+
+        if (client.IsConnected)
+        {
+            await client.PublishAsync(mqttMessage);
+        }
+        else
+        {
+            throw new InvalidOperationException("MQTT client is not connected");
+        }
+    }
     
-    private async Task ProcessMessage(string topic, string message)
+    // TODO abstract it to controller or something like that in future
+    private async Task HandleEvent(string payload)
     {
         try
         {
-            var method = mqttController.GetType()
-                .GetMethods()
-                .FirstOrDefault(m => m.GetCustomAttributes(typeof(MqttMethodAttribute), inherit: false)
-                .Cast<MqttMethodAttribute>()
-                .Any(a => a.Topic == topic));
-    
-            if (method != null)
+            var faceData = JsonConvert.DeserializeObject<FaceVerificationRequest>(payload);
+            if (faceData == null)
             {
-                var parameters = method.GetParameters();
-                if (parameters.Length == 1)
-                {
-                    var parameterType = parameters[0].ParameterType;
-                    try
-                    {
-                        var deserialized = JsonConvert.DeserializeObject(message, parameterType);
-                        method.Invoke(mqttController, new object[] { deserialized });
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError($"Error mapping message to method parameter: {ex}");
-                    }
-                }
-                else
-                {
-                    logger.LogWarning($"Invalid parameter count for method handling topic: {topic}");
-                }
+                throw new InvalidOperationException("Cannot deserialize FaceVerificationRequest");
             }
-            else
-            {
-                logger.LogWarning($"No handler found for topic: {topic}");
-            }
+
+            logger.LogInformation("git gud");
+            await SendMessage(resultTopicName, "Git gut");
+
+            // using var scope = serviceProvider.CreateScope();
+            // var faceAuthService = scope.ServiceProvider.GetRequiredService<FaceAuthService>();
+            //
+            // var result = await faceAuthService.VerifyFace(faceData);
+            // if (result.IsFailure)
+            // {
+            //     logger.LogInformation("Verification failure");
+            //     await SendMessage(resultTopicName, "Failure");
+            // }
+            // else
+            // {
+            //     logger.LogInformation("Verification succeeded");
+            //     await SendMessage(resultTopicName, "Success");
+            // }
+
         }
         catch (Exception ex)
         {
-            logger.LogError("Error processing message: " + ex);
+            logger.LogError($"Serialization error {ex.Message}");
+            await SendMessage(resultTopicName, "Error");
         }
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
-        {
-            await client.ConnectAsync(options, stoppingToken);
-            logger.LogInformation("Connected to MQTT Broker");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex.StackTrace);
-            logger.LogError($"Failed to connect to MQTT broker: {ex.Message}");
-            Environment.Exit(1);
-            return;
-        }
+        await client.ConnectAsync(options, stoppingToken);
 
-        var topics = mqttController.GetType()
-            .GetMethods()
-            .SelectMany(m => m.GetCustomAttributes(typeof(MqttMethodAttribute), inherit: false))
-            .Cast<MqttMethodAttribute>()
-            .Select(a => a.Topic)
-            .Distinct()
-            .Select(topic => new MqttTopicFilterBuilder()
-                .WithTopic(topic)
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-                .Build())
-            .ToList();
-
-        var subscriptionOptions = new MqttClientSubscribeOptions
-        {
-            TopicFilters = topics 
-        };
-
-        logger.LogInformation(string.Join(", ", subscriptionOptions.TopicFilters.Select(t=> t.Topic)));
-        
-        await client.SubscribeAsync(subscriptionOptions, stoppingToken);
-        
-        logger.LogInformation($"Subscribed to topics: {string.Join(", ", topics.Select(t => t.Topic))}");
-        
-        client.ApplicationMessageReceivedAsync += async e =>
-        {
-            logger.LogInformation($"Message received!");
-            var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-            await ProcessMessage(topicName, message);
-        };
+        await client.SubscribeAsync(new MqttTopicFilterBuilder()
+            .WithTopic(topicName)
+            .WithAtLeastOnceQoS()
+            .Build());
         
         while (!stoppingToken.IsCancellationRequested)
         {
             await Task.Delay(1000, stoppingToken);
         }
-        
-        await client.DisconnectAsync();
-        logger.LogInformation("Disconnected with broker");
     }
-
-    public async Task SendMessageAsync(string topic, string message)
+    
+    public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            var mqttMessage = new MqttApplicationMessageBuilder()
-                .WithTopic(topic)               
-                .WithPayload(Encoding.UTF8.GetBytes(message))  
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
-                .WithRetainFlag(false)              
-                .Build();
-            
-            await client.PublishAsync(mqttMessage);
-            logger.LogInformation($"Message sent: {message}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError($"Error sending message: {ex.Message}");
-        }
+        var disconnectOptions = new MqttClientDisconnectOptionsBuilder()
+            .WithReason(MqttClientDisconnectOptionsReason.NormalDisconnection)
+            .Build();
+        
+        await client.DisconnectAsync(disconnectOptions, cancellationToken);
     }
 }
