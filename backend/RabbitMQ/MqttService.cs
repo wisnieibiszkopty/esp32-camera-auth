@@ -72,20 +72,20 @@ public class MqttService : BackgroundService
             logger.LogInformation("git gud");
             await SendMessage(resultTopicName, "Git gut");
 
-            // using var scope = serviceProvider.CreateScope();
-            // var faceAuthService = scope.ServiceProvider.GetRequiredService<FaceAuthService>();
-            //
-            // var result = await faceAuthService.VerifyFace(faceData);
-            // if (result.IsFailure)
-            // {
-            //     logger.LogInformation("Verification failure");
-            //     await SendMessage(resultTopicName, "Failure");
-            // }
-            // else
-            // {
-            //     logger.LogInformation("Verification succeeded");
-            //     await SendMessage(resultTopicName, "Success");
-            // }
+            using var scope = serviceProvider.CreateScope();
+            var faceAuthService = scope.ServiceProvider.GetRequiredService<FaceAuthService>();
+            
+            var result = await faceAuthService.VerifyFace(faceData);
+            if (result.IsFailure)
+            {
+                logger.LogInformation("Verification failure");
+                await SendMessage(resultTopicName, "Failure");
+            }
+            else
+            {
+                logger.LogInformation("Verification succeeded");
+                await SendMessage(resultTopicName, "Success");
+            }
 
         }
         catch (Exception ex)
