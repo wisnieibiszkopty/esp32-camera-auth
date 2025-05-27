@@ -26,9 +26,6 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<ActionResult> Verify([FromForm] IFormFile image, [FromForm] DeviceData data)
         {
-            // there is something wrong with timestamp
-            
-            
             if (image == null || image.Length == 0)
                 return BadRequest("No image provided");
 
@@ -41,12 +38,16 @@ namespace backend.Controllers
             
             string base64Image = Convert.ToBase64String(imageBytes);
             
+            logger.LogError($"{data.DeviceId} - {data.Timestamp}");
+            
             var faceVerification = new FaceVerificationRequest
             {
                 DeviceId = data.DeviceId,
-                TimestampUnix = data.TimestampUnix,
+                TimestampUnix = data.Timestamp,
                 ImageBase64 = base64Image
             };
+            
+            logger.LogError($"{faceVerification.DeviceId} - {faceVerification.TimestampUnix} - {faceVerification.Timestamp}");
             
             var result = await faceAuthService.VerifyFace(faceVerification);
             if (result.IsFailure)
