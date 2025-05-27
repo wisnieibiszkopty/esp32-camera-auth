@@ -18,7 +18,7 @@ namespace backend.Controllers
         {
             this.loggingService = loggingService;
         }
-
+        
         [Authorize]
         [HttpGet("logs")]
         public async Task<PagedResult<Log>> GetLogs(
