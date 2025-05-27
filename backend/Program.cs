@@ -1,19 +1,18 @@
 using System.Text.Json.Serialization;
 using backend.Data;
-using backend.Discord;
-using backend.RabbitMQ;
 using backend.Services;
 using backend.Services.Logging;
+using backend.Services.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Configuration.AddAzureAppConfiguration(options =>
-{
-    var endpoint = builder.Configuration["Config:Endpoint"];
-    options.Connect(endpoint);
-});
+// builder.Configuration.AddAzureAppConfiguration(options =>
+// {
+//     var endpoint = builder.Configuration["Config:Endpoint"];
+//     options.Connect(endpoint);
+// });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -40,7 +39,7 @@ builder.Services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<IStorageService, AzureStorageService>();
+builder.Services.AddScoped<IStorageService, LocalStorageService>();
 
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddRepositories();
@@ -51,8 +50,8 @@ builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddScoped<FaceAuthService>();
 
 // rabbitmq-plugins enable rabbitmq_mqtt
-builder.Services.AddSingleton<MqttService>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttService>());
+//builder.Services.AddSingleton<MqttService>();
+//builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttService>());
 
 builder.Services.AddSingleton<BotService>();
 
